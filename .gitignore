@@ -1,0 +1,67 @@
+# Universal Ads SDK .gitignore
+
+# Environment files with sensitive data
+.env
+.env.*
+!.env.example
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+bin/
+pyvenv.cfg
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files with credentials (keep templates)
+tests/*_test.py
+tests/test_*.py
+!tests/test_template.py
+!tests/README.md
+!tests/__init__.py
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+
+# Logs
+*.log
