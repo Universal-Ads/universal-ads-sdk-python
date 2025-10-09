@@ -55,6 +55,7 @@ Thumbs.db
 tests/*_test.py
 tests/test_*.py
 !tests/test_template.py
+!tests/comprehensive_test.py
 !tests/README.md
 !tests/__init__.py
 
