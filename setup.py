@@ -16,11 +16,11 @@ setup(
     name="universal-ads-sdk",
     version="1.0.0",
     author="Universal Ads",
-    author_email="support@universalads.com",
+    author_email="support+sdk@universalads.com",
     description="Python SDK for the Universal Ads Third Party API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/universal-ads/universal-ads-sdk-python",
+    url="https://github.com/Universal-Ads/universal-ads-sdk-python",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -49,8 +49,8 @@ setup(
     },
     keywords="ads, advertising, api, sdk, universal-ads",
     project_urls={
-        "Bug Reports": "https://github.com/universal-ads/universal-ads-sdk-python/issues",
-        "Source": "https://github.com/universal-ads/universal-ads-sdk-python",
+        "Bug Reports": "https://github.com/Universal-Ads/universal-ads-sdk-python/issues",
+        "Source": "https://github.com/Universal-Ads/universal-ads-sdk-python",
         "Documentation": "https://developers.universalads.com/",
     },
 )
