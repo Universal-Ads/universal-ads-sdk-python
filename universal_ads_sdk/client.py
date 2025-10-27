@@ -139,7 +139,7 @@ class UniversalAdsClient:
 
     def get_creatives(
         self,
-        ad_account_id: Optional[str] = None,
+        adaccount_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         sort: Optional[str] = None,
@@ -148,7 +148,7 @@ class UniversalAdsClient:
         Get a list of creatives.
 
         Args:
-            ad_account_id: Filter by ad account ID
+            adaccount_id: Filter by ad account ID
             limit: Maximum number of results to return
             offset: Number of results to skip
             sort: Sort field and direction (e.g., 'id_asc', 'name_desc')
@@ -157,8 +157,8 @@ class UniversalAdsClient:
             Dictionary containing the list of creatives
         """
         params = {}
-        if ad_account_id:
-            params["ad_account_id"] = ad_account_id
+        if adaccount_id:
+            params["adaccount_id"] = adaccount_id
         if limit:
             params["limit"] = limit
         if offset:
@@ -181,20 +181,20 @@ class UniversalAdsClient:
         return self._make_request("GET", f"/creative/{creative_id}")
 
     def create_creative(
-        self, ad_account_id: str, name: str, media_id: str
+        self, adaccount_id: str, name: str, media_id: str
     ) -> Dict[str, Any]:
         """
         Create a new creative.
 
         Args:
-            ad_account_id: The ad account ID
+            adaccount_id: The ad account ID
             name: Creative name
             media_id: The media ID to associate with the creative
 
         Returns:
             Dictionary containing the created creative data
         """
-        data = {"ad_account_id": ad_account_id, "name": name, "media_id": media_id}
+        data = {"adaccount_id": adaccount_id, "name": name, "media_id": media_id}
         return self._make_request("POST", "/creative", data=data)
 
     def update_creative(
@@ -273,7 +273,7 @@ class UniversalAdsClient:
         self,
         start_date: str,
         end_date: str,
-        ad_account_id: Optional[str] = None,
+        adaccount_id: Optional[str] = None,
         campaign_ids: Optional[list] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -284,7 +284,7 @@ class UniversalAdsClient:
         Args:
             start_date: Start date in YYYY-MM-DD format
             end_date: End date in YYYY-MM-DD format
-            ad_account_id: Filter by ad account ID
+            adaccount_id: Filter by ad account ID
             campaign_ids: List of campaign IDs to include
             limit: Maximum number of results
             offset: Number of results to skip
@@ -294,8 +294,8 @@ class UniversalAdsClient:
         """
         params = {"start_date": start_date, "end_date": end_date}
 
-        if ad_account_id:
-            params["ad_account_id"] = ad_account_id
+        if adaccount_id:
+            params["adaccount_id"] = adaccount_id
         if campaign_ids:
             params["campaign_ids"] = campaign_ids
         if limit:
@@ -309,7 +309,7 @@ class UniversalAdsClient:
         self,
         start_date: str,
         end_date: str,
-        ad_account_id: Optional[str] = None,
+        adaccount_id: Optional[str] = None,
         adset_ids: Optional[list] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -320,7 +320,7 @@ class UniversalAdsClient:
         Args:
             start_date: Start date in YYYY-MM-DD format
             end_date: End date in YYYY-MM-DD format
-            ad_account_id: Filter by ad account ID
+            adaccount_id: Filter by ad account ID
             adset_ids: List of adset IDs to include
             limit: Maximum number of results
             offset: Number of results to skip
@@ -330,8 +330,8 @@ class UniversalAdsClient:
         """
         params = {"start_date": start_date, "end_date": end_date}
 
-        if ad_account_id:
-            params["ad_account_id"] = ad_account_id
+        if adaccount_id:
+            params["adaccount_id"] = adaccount_id
         if adset_ids:
             params["adset_ids"] = adset_ids
         if limit:
@@ -345,7 +345,7 @@ class UniversalAdsClient:
         self,
         start_date: str,
         end_date: str,
-        ad_account_id: Optional[str] = None,
+        adaccount_id: Optional[str] = None,
         ad_ids: Optional[list] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -356,7 +356,7 @@ class UniversalAdsClient:
         Args:
             start_date: Start date in YYYY-MM-DD format
             end_date: End date in YYYY-MM-DD format
-            ad_account_id: Filter by ad account ID
+            adaccount_id: Filter by ad account ID
             ad_ids: List of ad IDs to include
             limit: Maximum number of results
             offset: Number of results to skip
@@ -366,8 +366,8 @@ class UniversalAdsClient:
         """
         params = {"start_date": start_date, "end_date": end_date}
 
-        if ad_account_id:
-            params["ad_account_id"] = ad_account_id
+        if adaccount_id:
+            params["adaccount_id"] = adaccount_id
         if ad_ids:
             params["ad_ids"] = ad_ids
         if limit:

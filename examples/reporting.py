@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from universal_ads_sdk import UniversalAdsClient, APIError
 
 
-def get_last_month_reports(client, ad_account_id):
+def get_last_month_reports(client, adaccount_id):
     """
     Get reports for the last month.
     """
@@ -28,7 +28,7 @@ def get_last_month_reports(client, ad_account_id):
         campaign_report = client.get_campaign_report(
             start_date=start_date,
             end_date=end_date,
-            ad_account_id=ad_account_id,
+            adaccount_id=adaccount_id,
             limit=50,
         )
 
@@ -46,7 +46,7 @@ def get_last_month_reports(client, ad_account_id):
         adset_report = client.get_adset_report(
             start_date=start_date,
             end_date=end_date,
-            ad_account_id=ad_account_id,
+            adaccount_id=adaccount_id,
             limit=50,
         )
 
@@ -64,7 +64,7 @@ def get_last_month_reports(client, ad_account_id):
         ad_report = client.get_ad_report(
             start_date=start_date,
             end_date=end_date,
-            ad_account_id=ad_account_id,
+            adaccount_id=adaccount_id,
             limit=50,
         )
 
@@ -121,11 +121,11 @@ def main():
     )
 
     # Example ad account ID - replace with your actual account ID
-    ad_account_id = "3d49e08c-465d-4673-a445-d4ba3575f032"
+    adaccount_id = "3d49e08c-465d-4673-a445-d4ba3575f032"
 
     try:
         # Get last month's reports
-        reports = get_last_month_reports(client, ad_account_id)
+        reports = get_last_month_reports(client, adaccount_id)
 
         if reports and reports["campaigns"]:
             # Get detailed report for the first campaign

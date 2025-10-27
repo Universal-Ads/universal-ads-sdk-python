@@ -22,7 +22,7 @@ def main():
         # Example 2: Create a new creative
         print("\nCreating a new creative...")
         new_creative = client.create_creative(
-            ad_account_id="3d49e08c-465d-4673-a445-d4ba3575f032",
+            adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
             name="SDK Test Creative",
             media_id="cc0f46c7-d9b9-4758-9479-17e1d77c5eea",
         )
@@ -40,7 +40,7 @@ def main():
         report = client.get_campaign_report(
             start_date="2024-01-01",
             end_date="2024-01-31",
-            ad_account_id="3d49e08c-465d-4673-a445-d4ba3575f032",
+            adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
         )
         print(f"Report contains {len(report.get('data', []))} campaigns")
 

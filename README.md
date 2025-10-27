@@ -57,7 +57,7 @@ print(f"Media verified: {media['status']}")
 ```python
 # Create a new creative
 creative = client.create_creative(
-    ad_account_id="3d49e08c-465d-4673-a445-d4ba3575f032",
+    adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
     name="My Creative",
     media_id="cc0f46c7-d9b9-4758-9479-17e1d77c5eea"
 )
@@ -71,7 +71,7 @@ print(f"Created creative: {creative['id']}")
 report = client.get_campaign_report(
     start_date="2024-01-01",
     end_date="2024-01-31",
-    ad_account_id="3d49e08c-465d-4673-a445-d4ba3575f032"
+    adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032"
 )
 print(f"Report contains {len(report['data'])} campaigns")
 ```
@@ -95,7 +95,7 @@ UniversalAdsClient(
 #### Get All Creatives
 ```python
 creatives = client.get_creatives(
-    ad_account_id="account-id",  # Optional: filter by account
+    adaccount_id="account-id",  # Optional: filter by account
     limit=50,                    # Optional: limit results
     offset=0,                    # Optional: pagination offset
     sort="name_asc"              # Optional: sort order
@@ -110,7 +110,7 @@ creative = client.get_creative("creative-id")
 #### Create Creative
 ```python
 creative = client.create_creative(
-    ad_account_id="account-id",
+    adaccount_id="account-id",
     name="Creative Name",
     media_id="media-id"
 )
@@ -152,7 +152,7 @@ media = client.verify_media("media-id")
 report = client.get_campaign_report(
     start_date="2024-01-01",
     end_date="2024-01-31",
-    ad_account_id="account-id",      # Optional
+    adaccount_id="account-id",      # Optional
     campaign_ids=["id1", "id2"],     # Optional
     limit=100,                       # Optional
     offset=0                         # Optional
@@ -164,7 +164,7 @@ report = client.get_campaign_report(
 report = client.get_adset_report(
     start_date="2024-01-01",
     end_date="2024-01-31",
-    ad_account_id="account-id",      # Optional
+    adaccount_id="account-id",      # Optional
     adset_ids=["id1", "id2"],        # Optional
     limit=100,                       # Optional
     offset=0                         # Optional
@@ -176,7 +176,7 @@ report = client.get_adset_report(
 report = client.get_ad_report(
     start_date="2024-01-01",
     end_date="2024-01-31",
-    ad_account_id="account-id",      # Optional
+    adaccount_id="account-id",      # Optional
     ad_ids=["id1", "id2"],           # Optional
     limit=100,                       # Optional
     offset=0                         # Optional
