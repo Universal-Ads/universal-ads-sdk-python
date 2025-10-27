@@ -33,19 +33,7 @@ your-private-key-content
 )
 ```
 
-### 2. Create a Creative
-
-```python
-# Create a new creative
-creative = client.create_creative(
-    ad_account_id="3d49e08c-465d-4673-a445-d4ba3575f032",
-    name="My Creative",
-    media_id="cc0f46c7-d9b9-4758-9479-17e1d77c5eea"
-)
-print(f"Created creative: {creative['id']}")
-```
-
-### 3. Upload Media
+### 2. Upload Media
 
 ```python
 # Upload a media file
@@ -62,6 +50,18 @@ with open("/path/to/your/image.jpg", "rb") as f:
 # Verify the upload
 media = client.verify_media(upload_info["media_id"])
 print(f"Media verified: {media['status']}")
+```
+
+### 3. Create a Creative
+
+```python
+# Create a new creative
+creative = client.create_creative(
+    ad_account_id="3d49e08c-465d-4673-a445-d4ba3575f032",
+    name="My Creative",
+    media_id="cc0f46c7-d9b9-4758-9479-17e1d77c5eea"
+)
+print(f"Created creative: {creative['id']}")
 ```
 
 ### 4. Get Performance Reports
