@@ -6,8 +6,8 @@ A Python SDK for interacting with the Universal Ads Third Party API. This SDK pr
 
 - **Creative Management**: Create, read, update, and delete creatives
 - **Media Upload**: Upload and verify media files
-- **Performance Reports**: Access campaign, adset, and ad performance data
-- **Secure Authentication**: ECDSA-based request signing for secure API access
+- **Reports**: Access campaign, adset, and ad performance data
+- **Secure Authentication**:
 - **Automatic Retries**: Built-in retry logic for robust API interactions
 - **Type Hints**: Full type annotation support for better development experience
 
@@ -231,20 +231,7 @@ client = UniversalAdsClient(
 
 ## Authentication
 
-The SDK uses ECDSA-based request signing for secure API access. Each request is signed with your private key and includes:
-
-- API key identification
-- Timestamp for request freshness
-- ECDSA signature for request integrity
-- SDK identification headers for logging
-
-## SDK Identification
-
-The SDK automatically includes identification headers in all requests:
-- `x-sdk-version`: SDK version number
-- `x-sdk-source`: SDK source identifier
-
-These headers help the Universal Ads team identify SDK usage in API logs without requiring any backend changes.
+The SDK uses request signing for secure API access. Each request is signed with your private key and includes:
 
 ## Requirements
 
@@ -312,9 +299,9 @@ flake8 universal_ads_sdk/
 
 ## Support
 
-- Documentation: [https://docs.universalads.com/sdk/python](https://docs.universalads.com/sdk/python)
+- Documentation: [https://developers.universalads.com/](https://developers.universalads.com/)
 - Issues: [GitHub Issues](https://github.com/universal-ads/universal-ads-sdk-python/issues)
-- Email: support@universalads.com
+- Email: support+sdk@universalads.com
 
 ## License
 

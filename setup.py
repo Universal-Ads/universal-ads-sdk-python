@@ -51,6 +51,6 @@ setup(
     project_urls={
         "Bug Reports": "https://github.com/universal-ads/universal-ads-sdk-python/issues",
         "Source": "https://github.com/universal-ads/universal-ads-sdk-python",
-        "Documentation": "https://docs.universalads.com/sdk/python",
+        "Documentation": "https://developers.universalads.com/",
     },
 )
