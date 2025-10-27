@@ -14,7 +14,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="universal-ads-sdk",
-    version="1.0.1",
+    version="1.0.2",
     author="Universal Ads",
     author_email="support+sdk@universalads.com",
     description="Python SDK for the Universal Ads Third Party API",
