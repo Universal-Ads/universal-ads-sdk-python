@@ -87,7 +87,8 @@ class UniversalAdsClient:
         if params:
             from urllib.parse import urlencode
 
-            query_string = urlencode(params)
+            # Ensure list values are encoded as repeated query params (e.g., a=1&a=2)
+            query_string = urlencode(params, doseq=True)
             url = f"{url}?{query_string}"
 
         # Prepare body

@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "universal-ads-sdk"
-version = "1.0.2"
+version = "1.0.3"
 description = "Python SDK for the Universal Ads Third Party API"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Universal Ads", email = "support@universalads.com"},
+    {name = "Universal Ads", email = "support+sdk@universalads.com"},
 ]
 keywords = ["ads", "advertising", "api", "sdk", "universal-ads"]
 classifiers = [
@@ -44,7 +44,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/universal-ads/universal-ads-sdk-python"
-Documentation = "https://developers.universalads.com/n"
+Documentation = "https://developers.universalads.com/"
 Repository = "https://github.com/universal-ads/universal-ads-sdk-python"
 "Bug Tracker" = "https://github.com/universal-ads/universal-ads-sdk-python/issues"
 

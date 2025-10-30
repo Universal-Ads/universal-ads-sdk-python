@@ -108,7 +108,7 @@ class Authenticator:
         headers = {
             "x-api-key": self.api_key,
             "x-timestamp": timestamp,
-            "x-sdk-version": "1.0.0",  # SDK identification flag
+            "x-sdk-version": "1.0.3",  # SDK identification flag
             "x-sdk-source": "universal-ads-python-sdk",  # SDK identification flag
         }
 
