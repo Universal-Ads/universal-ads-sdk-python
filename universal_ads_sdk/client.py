@@ -10,6 +10,12 @@ from urllib3.util.retry import Retry
 
 from .auth import Authenticator
 from .exceptions import APIError, AuthenticationError
+from .endpoints import (
+    CreativeEndpoint,
+    MediaEndpoint,
+    ReportEndpoint,
+    SegmentEndpoint,
+)
 
 
 class UniversalAdsClient:
@@ -59,6 +65,12 @@ class UniversalAdsClient:
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
+
+        # Initialize endpoint modules
+        self.creative = CreativeEndpoint(self._make_request)
+        self.media = MediaEndpoint(self._make_request)
+        self.report = ReportEndpoint(self._make_request)
+        self.segment = SegmentEndpoint(self._make_request)
 
     def _make_request(
         self,
@@ -137,6 +149,7 @@ class UniversalAdsClient:
             raise APIError(f"Request failed: {str(e)}")
 
     # Creative Management Methods
+    # These methods delegate to the creative endpoint for backward compatibility
 
     def get_creatives(
         self,
@@ -145,130 +158,46 @@ class UniversalAdsClient:
         offset: Optional[int] = None,
         sort: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Get a list of creatives.
-
-        Args:
-            adaccount_id: Filter by ad account ID
-            limit: Maximum number of results to return
-            offset: Number of results to skip
-            sort: Sort field and direction (e.g., 'id_asc', 'name_desc')
-
-        Returns:
-            Dictionary containing the list of creatives
-        """
-        params = {}
-        if adaccount_id:
-            params["adaccount_id"] = adaccount_id
-        if limit:
-            params["limit"] = limit
-        if offset:
-            params["offset"] = offset
-        if sort:
-            params["sort"] = sort
-
-        return self._make_request("GET", "/creative", params=params)
+        """Get a list of creatives. Delegates to creative endpoint."""
+        return self.creative.get_creatives(
+            adaccount_id=adaccount_id, limit=limit, offset=offset, sort=sort
+        )
 
     def get_creative(self, creative_id: str) -> Dict[str, Any]:
-        """
-        Get a specific creative by ID.
-
-        Args:
-            creative_id: The creative ID
-
-        Returns:
-            Dictionary containing the creative data
-        """
-        return self._make_request("GET", f"/creative/{creative_id}")
+        """Get a specific creative by ID. Delegates to creative endpoint."""
+        return self.creative.get_creative(creative_id)
 
     def create_creative(
         self, adaccount_id: str, name: str, media_id: str
     ) -> Dict[str, Any]:
-        """
-        Create a new creative.
-
-        Args:
-            adaccount_id: The ad account ID
-            name: Creative name
-            media_id: The media ID to associate with the creative
-
-        Returns:
-            Dictionary containing the created creative data
-        """
-        data = {"adaccount_id": adaccount_id, "name": name, "media_id": media_id}
-        return self._make_request("POST", "/creative", data=data)
+        """Create a new creative. Delegates to creative endpoint."""
+        return self.creative.create_creative(adaccount_id, name, media_id)
 
     def update_creative(
         self, creative_id: str, name: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
-        """
-        Update an existing creative.
-
-        Args:
-            creative_id: The creative ID to update
-            name: New creative name
-            **kwargs: Additional fields to update
-
-        Returns:
-            Dictionary containing the updated creative data
-        """
-        data = {}
-        if name is not None:
-            data["name"] = name
-        data.update(kwargs)
-
-        return self._make_request("PUT", f"/creative/{creative_id}", data=data)
+        """Update an existing creative. Delegates to creative endpoint."""
+        return self.creative.update_creative(creative_id, name=name, **kwargs)
 
     def delete_creative(self, creative_id: str) -> Dict[str, Any]:
-        """
-        Delete a creative.
-
-        Args:
-            creative_id: The creative ID to delete
-
-        Returns:
-            Empty dictionary on success
-        """
-        return self._make_request("DELETE", f"/creative/{creative_id}")
+        """Delete a creative. Delegates to creative endpoint."""
+        return self.creative.delete_creative(creative_id)
 
     # Media Management Methods
+    # These methods delegate to the media endpoint for backward compatibility
 
     def upload_media(
         self, file_path: str, content_type: str, filename: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Upload media and get a presigned URL for file upload.
-
-        Args:
-            file_path: Path to the file to upload
-            content_type: MIME type of the file
-            filename: Optional filename (defaults to basename of file_path)
-
-        Returns:
-            Dictionary containing upload information including presigned URL
-        """
-        import os
-
-        if not filename:
-            filename = os.path.basename(file_path)
-
-        data = {"filename": filename, "content_type": content_type}
-
-        return self._make_request("POST", "/media", data=data)
+        """Upload media and get a presigned URL. Delegates to media endpoint."""
+        return self.media.upload_media(file_path, content_type, filename)
 
     def verify_media(self, media_id: str) -> Dict[str, Any]:
-        """
-        Verify that a media upload is complete and valid.
-
-        Args:
-            media_id: The media ID to verify
-
-        Returns:
-            Dictionary containing media verification status
-        """
-        return self._make_request("POST", f"/media/{media_id}/verify")
+        """Verify that a media upload is complete. Delegates to media endpoint."""
+        return self.media.verify_media(media_id)
 
     # Reporting Methods
+    # These methods delegate to the report endpoint for backward compatibility
 
     def get_campaign_report(
         self,
@@ -279,32 +208,15 @@ class UniversalAdsClient:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """
-        Get campaign performance report.
-
-        Args:
-            start_date: Start date in YYYY-MM-DD format
-            end_date: End date in YYYY-MM-DD format
-            adaccount_id: Filter by ad account ID
-            campaign_ids: List of campaign IDs to include
-            limit: Maximum number of results
-            offset: Number of results to skip
-
-        Returns:
-            Dictionary containing campaign report data
-        """
-        params = {"start_date": start_date, "end_date": end_date}
-
-        if adaccount_id:
-            params["adaccount_id"] = adaccount_id
-        if campaign_ids:
-            params["campaign_ids"] = campaign_ids
-        if limit:
-            params["limit"] = limit
-        if offset:
-            params["offset"] = offset
-
-        return self._make_request("GET", "/report/campaign", params=params)
+        """Get campaign performance report. Delegates to report endpoint."""
+        return self.report.get_campaign_report(
+            start_date=start_date,
+            end_date=end_date,
+            adaccount_id=adaccount_id,
+            campaign_ids=campaign_ids,
+            limit=limit,
+            offset=offset,
+        )
 
     def get_adset_report(
         self,
@@ -315,32 +227,15 @@ class UniversalAdsClient:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """
-        Get adset performance report.
-
-        Args:
-            start_date: Start date in YYYY-MM-DD format
-            end_date: End date in YYYY-MM-DD format
-            adaccount_id: Filter by ad account ID
-            adset_ids: List of adset IDs to include
-            limit: Maximum number of results
-            offset: Number of results to skip
-
-        Returns:
-            Dictionary containing adset report data
-        """
-        params = {"start_date": start_date, "end_date": end_date}
-
-        if adaccount_id:
-            params["adaccount_id"] = adaccount_id
-        if adset_ids:
-            params["adset_ids"] = adset_ids
-        if limit:
-            params["limit"] = limit
-        if offset:
-            params["offset"] = offset
-
-        return self._make_request("GET", "/report/adset", params=params)
+        """Get adset performance report. Delegates to report endpoint."""
+        return self.report.get_adset_report(
+            start_date=start_date,
+            end_date=end_date,
+            adaccount_id=adaccount_id,
+            adset_ids=adset_ids,
+            limit=limit,
+            offset=offset,
+        )
 
     def get_ad_report(
         self,
@@ -351,29 +246,98 @@ class UniversalAdsClient:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """
-        Get ad performance report.
+        """Get ad performance report. Delegates to report endpoint."""
+        return self.report.get_ad_report(
+            start_date=start_date,
+            end_date=end_date,
+            adaccount_id=adaccount_id,
+            ad_ids=ad_ids,
+            limit=limit,
+            offset=offset,
+        )
 
-        Args:
-            start_date: Start date in YYYY-MM-DD format
-            end_date: End date in YYYY-MM-DD format
-            adaccount_id: Filter by ad account ID
-            ad_ids: List of ad IDs to include
-            limit: Maximum number of results
-            offset: Number of results to skip
+    # Segment Management Methods
+    # These methods delegate to the segment endpoint for backward compatibility
 
-        Returns:
-            Dictionary containing ad report data
-        """
-        params = {"start_date": start_date, "end_date": end_date}
+    def create_segment(
+        self,
+        adaccount_id: str,
+        media_id: str,
+        name: str,
+        segment_type: str,
+        description: Optional[str] = None,
+        large_files: bool = False,
+    ) -> Dict[str, Any]:
+        """Create a new custom segment. Delegates to segment endpoint."""
+        return self.segment.create_segment(
+            adaccount_id=adaccount_id,
+            media_id=media_id,
+            name=name,
+            segment_type=segment_type,
+            description=description,
+            large_files=large_files,
+        )
 
-        if adaccount_id:
-            params["adaccount_id"] = adaccount_id
-        if ad_ids:
-            params["ad_ids"] = ad_ids
-        if limit:
-            params["limit"] = limit
-        if offset:
-            params["offset"] = offset
+    def get_segments(
+        self,
+        adaccount_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        status: Optional[str] = None,
+        segment_ids: Optional[list] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        sort: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get a list of custom segments. Delegates to segment endpoint."""
+        return self.segment.get_segments(
+            adaccount_id=adaccount_id,
+            name=name,
+            description=description,
+            status=status,
+            segment_ids=segment_ids,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+        )
 
-        return self._make_request("GET", "/report/ad", params=params)
+    def get_segment(self, segment_id: str) -> Dict[str, Any]:
+        """Get a specific segment by ID. Delegates to segment endpoint."""
+        return self.segment.get_segment(segment_id)
+
+    def update_segment(
+        self,
+        segment_id: str,
+        name: str,
+        description: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Update an existing segment. Delegates to segment endpoint."""
+        return self.segment.update_segment(
+            segment_id=segment_id, name=name, description=description
+        )
+
+    def delete_segment(self, segment_id: str) -> Dict[str, Any]:
+        """Delete a segment. Delegates to segment endpoint."""
+        return self.segment.delete_segment(segment_id)
+
+    def extend_segment(
+        self,
+        segment_id: str,
+        media_id: str,
+        large_files: bool = False,
+    ) -> Dict[str, Any]:
+        """Extend a segment with additional media. Delegates to segment endpoint."""
+        return self.segment.extend_segment(
+            segment_id=segment_id, media_id=media_id, large_files=large_files
+        )
+
+    def update_segment_users(
+        self,
+        segment_id: str,
+        users: list,
+        remove: bool = False,
+    ) -> Dict[str, Any]:
+        """Add or remove users from a segment. Delegates to segment endpoint."""
+        return self.segment.update_segment_users(
+            segment_id=segment_id, users=users, remove=remove
+        )

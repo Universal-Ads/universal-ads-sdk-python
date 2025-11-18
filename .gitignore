@@ -66,3 +66,8 @@ tests/test_*.py
 
 # Logs
 *.log
+
+# Development scripts and guides
+run_tests_dev.sh
+RELEASE_GUIDE.md
+release.sh

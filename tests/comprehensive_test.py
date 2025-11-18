@@ -38,6 +38,9 @@ from universal_ads_sdk import UniversalAdsClient, APIError, AuthenticationError
 # Load credentials from environment variables
 API_KEY = os.getenv("UNIVERSAL_ADS_API_KEY")
 PRIVATE_KEY_PEM = os.getenv("UNIVERSAL_ADS_PRIVATE_KEY")
+BASE_URL = os.getenv("UNIVERSAL_ADS_BASE_URL")  # Optional: for dev/local testing
+TEST_ADACCOUNT_ID = os.getenv("TEST_ADACCOUNT_ID")  # Optional: for segment tests
+TEST_MEDIA_ID = os.getenv("TEST_MEDIA_ID")  # Optional: for segment tests
 
 
 class ComprehensiveSDKTester:
@@ -66,12 +69,19 @@ class ComprehensiveSDKTester:
     def test_initialization(self) -> bool:
         """Test SDK client initialization."""
         try:
-            self.client = UniversalAdsClient(
-                api_key=self.api_key,
-                private_key_pem=self.private_key_pem,
-                timeout=30,
-                max_retries=3,
-            )
+            client_kwargs = {
+                "api_key": self.api_key,
+                "private_key_pem": self.private_key_pem,
+                "timeout": 30,
+                "max_retries": 3,
+            }
+            # Add base_url if provided in environment
+            base_url = os.getenv("UNIVERSAL_ADS_BASE_URL")
+            if base_url:
+                client_kwargs["base_url"] = base_url
+                print(f"   Using base URL: {base_url}")
+
+            self.client = UniversalAdsClient(**client_kwargs)
             self.log_test("SDK Initialization", True, "Client created successfully")
             return True
         except Exception as e:
@@ -164,7 +174,7 @@ class ComprehensiveSDKTester:
             creative_name = f"SDK Test Creative {int(time.time())}"
 
             response = self.client.create_creative(
-                ad_account_id=test_ad_account_id,
+                adaccount_id=test_ad_account_id,
                 name=creative_name,
                 media_id=test_media_id,
             )
@@ -527,6 +537,281 @@ class ComprehensiveSDKTester:
             self.log_test("Error Handling", False, f"Unexpected error type: {e}")
             return False
 
+    def test_get_segments(self) -> bool:
+        """Test getting segments list."""
+        if not self.client:
+            return False
+
+        test_adaccount_id = os.getenv("TEST_ADACCOUNT_ID")
+        if not test_adaccount_id:
+            self.log_test(
+                "Get Segments",
+                True,
+                "Skipped - TEST_ADACCOUNT_ID not set",
+            )
+            return True
+
+        try:
+            response = self.client.get_segments(adaccount_id=test_adaccount_id, limit=5)
+
+            if isinstance(response, dict):
+                data_count = len(response.get("data", []))
+                self.log_test(
+                    "Get Segments",
+                    True,
+                    f"Retrieved {data_count} segments",
+                )
+                return True
+            else:
+                self.log_test("Get Segments", False, "Invalid response format")
+                return False
+
+        except APIError as e:
+            if e.status_code == 404:
+                self.log_test(
+                    "Get Segments",
+                    True,
+                    "API structure validated (404 = ad account not found)",
+                )
+                return True
+            elif e.status_code == 422:
+                self.log_test(
+                    "Get Segments",
+                    True,
+                    "API structure validated (422 = missing required params)",
+                )
+                return True
+            else:
+                self.log_test("Get Segments", False, f"API error {e.status_code}: {e}")
+                return False
+        except Exception as e:
+            self.log_test("Get Segments", False, f"Unexpected error: {e}")
+            return False
+
+    def test_get_segment(self) -> bool:
+        """Test getting a specific segment."""
+        if not self.client:
+            return False
+
+        test_adaccount_id = os.getenv("TEST_ADACCOUNT_ID")
+        if not test_adaccount_id:
+            self.log_test(
+                "Get Segment",
+                True,
+                "Skipped - TEST_ADACCOUNT_ID not set",
+            )
+            return True
+
+        try:
+            # First get segments to find one to test with
+            segments = self.client.get_segments(adaccount_id=test_adaccount_id, limit=1)
+            if segments.get("data"):
+                segment_id = segments["data"][0]["id"]
+                segment = self.client.get_segment(segment_id)
+                if segment and "id" in segment:
+                    self.log_test(
+                        "Get Segment",
+                        True,
+                        f"Retrieved segment: {segment.get('name', 'Unknown')}",
+                    )
+                    return True
+                else:
+                    self.log_test("Get Segment", False, "Invalid response format")
+                    return False
+            else:
+                self.log_test(
+                    "Get Segment",
+                    True,
+                    "Skipped - No segments found to test",
+                )
+                return True
+
+        except APIError as e:
+            if e.status_code == 404:
+                self.log_test(
+                    "Get Segment",
+                    True,
+                    "API structure validated (404 = segment not found)",
+                )
+                return True
+            else:
+                self.log_test("Get Segment", False, f"API error {e.status_code}: {e}")
+                return False
+        except Exception as e:
+            self.log_test("Get Segment", False, f"Unexpected error: {e}")
+            return False
+
+    def test_create_segment(self) -> Optional[str]:
+        """Test creating a segment and return the segment ID."""
+        if not self.client:
+            return None
+
+        test_adaccount_id = os.getenv("TEST_ADACCOUNT_ID")
+        test_media_id = os.getenv("TEST_MEDIA_ID")
+
+        if not test_adaccount_id or not test_media_id:
+            self.log_test(
+                "Create Segment",
+                True,
+                "Skipped - TEST_ADACCOUNT_ID or TEST_MEDIA_ID not set",
+            )
+            return None
+
+        try:
+            segment_name = f"SDK Test Segment {int(time.time())}"
+
+            response = self.client.create_segment(
+                adaccount_id=test_adaccount_id,
+                media_id=test_media_id,
+                name=segment_name,
+                segment_type="custom",
+                description="Test segment created by SDK comprehensive test",
+            )
+
+            if response and "id" in response:
+                segment_id = response["id"]
+                self.log_test(
+                    "Create Segment",
+                    True,
+                    f"Created segment with ID: {segment_id}",
+                )
+                return segment_id
+            else:
+                self.log_test("Create Segment", False, "No segment ID in response")
+                return None
+
+        except APIError as e:
+            if e.status_code == 403:
+                self.log_test(
+                    "Create Segment",
+                    True,
+                    "API structure validated (403 = permission denied)",
+                )
+                return None
+            else:
+                self.log_test(
+                    "Create Segment", False, f"API error {e.status_code}: {e}"
+                )
+                if e.response_data:
+                    print(f"    Response data: {json.dumps(e.response_data, indent=2)}")
+                return None
+        except Exception as e:
+            self.log_test("Create Segment", False, f"Unexpected error: {e}")
+            return None
+
+    def test_update_segment(self, segment_id: str) -> bool:
+        """Test updating a segment."""
+        if not self.client or not segment_id:
+            return False
+
+        try:
+            new_name = f"Updated SDK Test Segment {int(time.time())}"
+            response = self.client.update_segment(
+                segment_id=segment_id,
+                name=new_name,
+                description="Updated description",
+            )
+
+            if response and "name" in response:
+                self.log_test(
+                    "Update Segment", True, f"Updated name to: {response['name']}"
+                )
+                return True
+            else:
+                self.log_test("Update Segment", False, "Invalid response format")
+                return False
+
+        except APIError as e:
+            self.log_test("Update Segment", False, f"API error {e.status_code}: {e}")
+            return False
+        except Exception as e:
+            self.log_test("Update Segment", False, f"Unexpected error: {e}")
+            return False
+
+    def test_extend_segment(self, segment_id: str, media_id: str) -> bool:
+        """Test extending a segment."""
+        if not self.client or not segment_id or not media_id:
+            return False
+
+        try:
+            self.client.extend_segment(
+                segment_id=segment_id,
+                media_id=media_id,
+                large_files=False,
+            )
+            self.log_test("Extend Segment", True, "Segment extended successfully")
+            return True
+
+        except APIError as e:
+            if e.status_code == 403:
+                self.log_test(
+                    "Extend Segment",
+                    True,
+                    "API structure validated (403 = permission denied)",
+                )
+                return True
+            else:
+                self.log_test(
+                    "Extend Segment", False, f"API error {e.status_code}: {e}"
+                )
+                return False
+        except Exception as e:
+            self.log_test("Extend Segment", False, f"Unexpected error: {e}")
+            return False
+
+    def test_update_segment_users(self, segment_id: str) -> bool:
+        """Test updating segment users."""
+        if not self.client or not segment_id:
+            return False
+
+        try:
+            test_users = ["test@example.com"]
+            self.client.update_segment_users(
+                segment_id=segment_id,
+                users=test_users,
+                remove=False,
+            )
+            self.log_test(
+                "Update Segment Users",
+                True,
+                f"Added {len(test_users)} users to segment",
+            )
+            return True
+
+        except APIError as e:
+            if e.status_code == 403:
+                self.log_test(
+                    "Update Segment Users",
+                    True,
+                    "API structure validated (403 = permission denied)",
+                )
+                return True
+            else:
+                self.log_test(
+                    "Update Segment Users", False, f"API error {e.status_code}: {e}"
+                )
+                return False
+        except Exception as e:
+            self.log_test("Update Segment Users", False, f"Unexpected error: {e}")
+            return False
+
+    def test_delete_segment(self, segment_id: str) -> bool:
+        """Test deleting a segment."""
+        if not self.client or not segment_id:
+            return False
+
+        try:
+            self.client.delete_segment(segment_id)
+            self.log_test("Delete Segment", True, "Segment deleted successfully")
+            return True
+
+        except APIError as e:
+            self.log_test("Delete Segment", False, f"API error {e.status_code}: {e}")
+            return False
+        except Exception as e:
+            self.log_test("Delete Segment", False, f"Unexpected error: {e}")
+            return False
+
     def run_all_tests(self):
         """Run all tests and return results."""
         print("🚀 Universal Ads SDK - Comprehensive Test Suite")
@@ -568,10 +853,31 @@ class ComprehensiveSDKTester:
         # Test error handling
         self.test_error_handling()
 
+        # Test segment operations
+        print("\n📋 Running Segment Endpoint Tests...")
+        print("-" * 40)
+        self.test_get_segments()
+        self.test_get_segment()
+
+        # Test segment CRUD operations
+        segment_id = self.test_create_segment()
+        test_media_id = os.getenv("TEST_MEDIA_ID")
+        if segment_id:
+            self.test_update_segment(segment_id)
+            if test_media_id:
+                self.test_extend_segment(segment_id, test_media_id)
+            self.test_update_segment_users(segment_id)
+            # Note: We'll delete the segment at the end
+
         # Clean up - delete test creative if created
         if creative_id:
             print("\n🧹 Cleaning up test creative...")
             self.test_delete_creative(creative_id)
+
+        # Clean up - delete test segment if created
+        if segment_id:
+            print("\n🧹 Cleaning up test segment...")
+            self.test_delete_segment(segment_id)
 
         return self.test_results
 

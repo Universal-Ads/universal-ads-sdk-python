@@ -1,13 +1,14 @@
 # Universal Ads SDK
 
-A Python SDK for interacting with the Universal Ads Third Party API. This SDK provides a simple and intuitive interface for managing creatives, uploading media, and accessing performance reports.
+A Python SDK for interacting with the Universal Ads Third Party API. This SDK provides a simple and intuitive interface for managing creatives, uploading media, creating custom segments, and accessing performance reports.
 
 ## Features
 
 - **Creative Management**: Create, read, update, and delete creatives
 - **Media Upload**: Upload and verify media files
+- **Segment Management**: Create and manage custom segments for targeted advertising
 - **Reports**: Access campaign, adset, and ad performance data
-- **Secure Authentication**:
+- **Secure Authentication**: Request signing with private key authentication
 - **Automatic Retries**: Built-in retry logic for robust API interactions
 - **Type Hints**: Full type annotation support for better development experience
 
@@ -64,7 +65,42 @@ creative = client.create_creative(
 print(f"Created creative: {creative['id']}")
 ```
 
-### 4. Get Performance Reports
+### 4. Create a Custom Segment
+
+```python
+# First, upload a CSV or TXT file containing user identifiers (one per row)
+upload_info = client.upload_media(
+    file_path="/path/to/users.csv",
+    content_type="text/csv"
+)
+
+# Upload the file to the presigned URL
+import requests
+with open("/path/to/users.csv", "rb") as f:
+    requests.put(upload_info["upload_url"], data=f)
+
+# Verify the upload
+media = client.verify_media(upload_info["media_id"])
+
+# Create a new custom segment using the uploaded media
+segment = client.create_segment(
+    adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
+    media_id=upload_info["media_id"],
+    name="My Custom Segment",
+    segment_type="custom",
+    description="A segment for targeted advertising"
+)
+print(f"Created segment: {segment['id']}")
+
+# Alternatively, add users programmatically (for smaller lists)
+client.update_segment_users(
+    segment_id=segment["id"],
+    users=["user@example.com", "another@example.com"],
+    remove=False
+)
+```
+
+### 5. Get Performance Reports
 
 ```python
 # Get campaign performance report
@@ -181,6 +217,112 @@ report = client.get_ad_report(
     limit=100,                       # Optional
     offset=0                         # Optional
 )
+```
+
+### Segment Management
+
+#### Segment File Format Requirements
+
+When creating or extending segments, you need to upload a media file containing user data. The file must meet these requirements:
+
+- **File Format**: CSV or TXT files only
+- **Structure**: Single column format (one identifier per row)
+- **Encoding**: UTF-8 encoding
+- **File Size**: Maximum 25MB (use `large_files=True` for larger files)
+- **Content**: 
+  - For email segments: Each row must contain a valid email address
+  - For other segment types: Each row contains a single identifier (e.g., IP address, Blockgraph ID, Experian LUID, Liveramp ID)
+
+**Example CSV file for email segments:**
+```csv
+user1@example.com
+user2@example.com
+user3@example.com
+```
+
+**Example TXT file for email segments:**
+```
+user1@example.com
+user2@example.com
+user3@example.com
+```
+
+**Upload Process:**
+1. Upload your file using the `upload_media()` method to get a `media_id`
+2. Use the `media_id` when creating or extending a segment
+3. The file will be validated automatically
+
+#### Get All Segments
+```python
+segments = client.get_segments(
+    adaccount_id="account-id",       # Required
+    name="Segment Name",             # Optional: filter by name
+    status="active",                 # Optional: filter by status
+    limit=50,                        # Optional: limit results
+    offset=0,                        # Optional: pagination offset
+    sort="name_asc"                  # Optional: sort order
+)
+```
+
+#### Get Specific Segment
+```python
+segment = client.get_segment("segment-id")
+```
+
+#### Create Segment
+```python
+# Note: media_id must reference a CSV or TXT file uploaded via upload_media()
+# The file must contain one identifier per row (see Segment File Format Requirements above)
+segment = client.create_segment(
+    adaccount_id="account-id",
+    media_id="media-id",                # From upload_media() response
+    name="Segment Name",
+    segment_type="custom",
+    description="Optional description",  # Optional
+    large_files=False                    # Optional: set True for files > 25MB
+)
+```
+
+#### Update Segment
+```python
+segment = client.update_segment(
+    "segment-id",
+    name="Updated Segment Name",
+    description="Updated description"    # Optional
+)
+```
+
+#### Extend Segment
+```python
+# Add additional media to an existing segment
+# Note: media_id must reference a CSV or TXT file uploaded via upload_media()
+client.extend_segment(
+    segment_id="segment-id",
+    media_id="new-media-id",            # From upload_media() response
+    large_files=False                    # Optional: set True for files > 25MB
+)
+```
+
+#### Update Segment Users
+```python
+# Add users to a segment
+client.update_segment_users(
+    segment_id="segment-id",
+    users=["user1@example.com", "user2@example.com"],
+    remove=False  # Set to True to remove users instead
+)
+
+# Remove users from a segment
+client.update_segment_users(
+    segment_id="segment-id",
+    users=["user1@example.com"],
+    remove=True
+)
+```
+
+#### Delete Segment
+```python
+client.delete_segment("segment-id")
 ```
 
 ## Error Handling
