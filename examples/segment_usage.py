@@ -30,18 +30,29 @@ def main():
             print(f"Segment name: {segment.get('name')}")
             print(f"Segment status: {segment.get('status')}")
 
-        # Example 3: Create a new segment
-        print("\nCreating a new segment...")
+        # Example 3: Create a new segment with media file
+        print("\nCreating a new segment with media file...")
         media_id = os.getenv("TEST_MEDIA_ID", "your-media-id-here")
         new_segment = client.create_segment(
             adaccount_id=adaccount_id,
-            media_id=media_id,
             name="SDK Test Segment",
-            segment_type="custom",  # Adjust based on your API's segment types
+            segment_type="email",  # email, ctv, ip_address, mobile_ad_id, etc.
+            media_id=media_id,
             description="Test segment created via SDK",
             large_files=False,
         )
         print(f"Created segment with ID: {new_segment['id']}")
+
+        # Example 3b: Create a segment with users list (alternative to media file)
+        print("\nCreating a segment with users list...")
+        users_segment = client.create_segment(
+            adaccount_id=adaccount_id,
+            name="SDK Test Segment (Users)",
+            segment_type="email",
+            users=["user1@example.com", "user2@example.com"],
+            description="Test segment created with users list",
+        )
+        print(f"Created segment with ID: {users_segment['id']}")
 
         # Example 4: Update the segment
         print("\nUpdating the segment...")

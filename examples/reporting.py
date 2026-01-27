@@ -26,9 +26,10 @@ def get_last_month_reports(client, adaccount_id):
         # Get campaign report
         print("\n=== Campaign Report ===")
         campaign_report = client.get_campaign_report(
+            adaccount_id=adaccount_id,
             start_date=start_date,
             end_date=end_date,
-            adaccount_id=adaccount_id,
+            date_aggregation="DAY",
             limit=50,
         )
 
@@ -44,9 +45,10 @@ def get_last_month_reports(client, adaccount_id):
         # Get adset report
         print("\n=== Adset Report ===")
         adset_report = client.get_adset_report(
+            adaccount_id=adaccount_id,
             start_date=start_date,
             end_date=end_date,
-            adaccount_id=adaccount_id,
+            date_aggregation="DAY",
             limit=50,
         )
 
@@ -62,9 +64,10 @@ def get_last_month_reports(client, adaccount_id):
         # Get ad report
         print("\n=== Ad Report ===")
         ad_report = client.get_ad_report(
+            adaccount_id=adaccount_id,
             start_date=start_date,
             end_date=end_date,
-            adaccount_id=adaccount_id,
+            date_aggregation="DAY",
             limit=50,
         )
 
@@ -91,7 +94,10 @@ def get_specific_campaign_report(client, campaign_id, start_date, end_date):
     try:
         print(f"\n=== Campaign {campaign_id} Report ===")
         report = client.get_campaign_report(
-            start_date=start_date, end_date=end_date, campaign_ids=[campaign_id]
+            adaccount_id=adaccount_id,
+            start_date=start_date,
+            end_date=end_date,
+            campaign_ids=[campaign_id],
         )
 
         campaigns = report.get("data", [])

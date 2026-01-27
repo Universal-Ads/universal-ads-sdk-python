@@ -2,7 +2,6 @@
 Media management endpoints.
 """
 
-import os
 from typing import Dict, Any, Optional
 from ._base import BaseEndpoint
 
@@ -11,25 +10,41 @@ class MediaEndpoint(BaseEndpoint):
     """Endpoint for managing media uploads."""
 
     def upload_media(
-        self, file_path: str, content_type: str, filename: Optional[str] = None
+        self,
+        mime_type: str,
+        adaccount_id: Optional[str],
+        name: Optional[str],
     ) -> Dict[str, Any]:
         """
-        Upload media and get a presigned URL for file upload.
+        Generate a presigned URL for file upload.
 
         Args:
-            file_path: Path to the file to upload
-            content_type: MIME type of the file
-            filename: Optional filename (defaults to basename of file_path)
+            mime_type: MIME type of the file
+            adaccount_id: Ad account ID (UUID, can be None)
+            name: Name of the media file (can be None)
 
         Returns:
             Dictionary containing upload information including presigned URL
         """
-        if not filename:
-            filename = os.path.basename(file_path)
-
-        data = {"filename": filename, "content_type": content_type}
+        data = {
+            "mime_type": mime_type,
+            "adaccount_id": adaccount_id,
+            "name": name,
+        }
 
         return self._make_request("POST", "/media", data=data)
+
+    def get_media(self, media_id: str) -> Dict[str, Any]:
+        """
+        Retrieve information on a specific media.
+
+        Args:
+            media_id: Unique ID of the media to be retrieved (UUID)
+
+        Returns:
+            Dictionary containing media information
+        """
+        return self._make_request("GET", f"/media/{media_id}")
 
     def verify_media(self, media_id: str) -> Dict[str, Any]:
         """

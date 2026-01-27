@@ -14,11 +14,13 @@ def upload_media_file(client, file_path, content_type):
     try:
         # Step 1: Get upload URL from Universal Ads API
         print(f"Requesting upload URL for {file_path}...")
+        # Using backward-compatible format (file_path, content_type)
+        # Alternatively, use: client.upload_media(mime_type=content_type, adaccount_id="...", name=os.path.basename(file_path))
         upload_info = client.upload_media(
             file_path=file_path, content_type=content_type
         )
 
-        print(f"Got upload URL for media ID: {upload_info['media_id']}")
+        print(f"Got upload URL for media ID: {upload_info['id']}")
         print(f"Upload URL: {upload_info['upload_url']}")
 
         # Step 2: Upload the file to the presigned URL
@@ -35,7 +37,13 @@ def upload_media_file(client, file_path, content_type):
 
         # Step 3: Verify the upload with Universal Ads API
         print("Verifying upload...")
-        media_info = client.verify_media(upload_info["media_id"])
+        media_info = client.verify_media(upload_info["id"])
+
+        # Step 4: Get media information
+        print("Getting media information...")
+        media_details = client.get_media(upload_info["id"])
+        print(f"Media filename: {media_details.get('filename', 'N/A')}")
+        print(f"Media MIME type: {media_details.get('mime_type', 'N/A')}")
 
         print(f"Media verification status: {media_info['status']}")
         print(f"Media ID: {media_info['id']}")

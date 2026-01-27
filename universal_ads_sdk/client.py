@@ -9,12 +9,13 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from .auth import Authenticator
-from .exceptions import APIError, AuthenticationError
+from .common.exceptions import APIError, AuthenticationError
 from .endpoints import (
     CreativeEndpoint,
     MediaEndpoint,
     ReportEndpoint,
     SegmentEndpoint,
+    MeEndpoint,
 )
 
 
@@ -71,6 +72,7 @@ class UniversalAdsClient:
         self.media = MediaEndpoint(self._make_request)
         self.report = ReportEndpoint(self._make_request)
         self.segment = SegmentEndpoint(self._make_request)
+        self.me = MeEndpoint(self._make_request)
 
     def _make_request(
         self,
@@ -154,13 +156,22 @@ class UniversalAdsClient:
     def get_creatives(
         self,
         adaccount_id: Optional[str] = None,
+        campaign_id: Optional[str] = None,
+        adset_id: Optional[str] = None,
+        ad_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         sort: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Get a list of creatives. Delegates to creative endpoint."""
         return self.creative.get_creatives(
-            adaccount_id=adaccount_id, limit=limit, offset=offset, sort=sort
+            adaccount_id=adaccount_id,
+            campaign_id=campaign_id,
+            adset_id=adset_id,
+            ad_id=ad_id,
+            limit=limit,
+            offset=offset,
+            sort=sort,
         )
 
     def get_creative(self, creative_id: str) -> Dict[str, Any]:
@@ -187,10 +198,51 @@ class UniversalAdsClient:
     # These methods delegate to the media endpoint for backward compatibility
 
     def upload_media(
-        self, file_path: str, content_type: str, filename: Optional[str] = None
+        self,
+        file_path: Optional[str] = None,
+        content_type: Optional[str] = None,
+        filename: Optional[str] = None,
+        mime_type: Optional[str] = None,
+        adaccount_id: Optional[str] = None,
+        name: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Upload media and get a presigned URL. Delegates to media endpoint."""
-        return self.media.upload_media(file_path, content_type, filename)
+        """
+        Upload media and get a presigned URL. Delegates to media endpoint.
+
+        For backward compatibility, accepts file_path/content_type/filename.
+        New API format uses mime_type/adaccount_id/name.
+
+        Args:
+            file_path: Path to file (for backward compatibility, used to extract name)
+            content_type: MIME type (for backward compatibility, maps to mime_type)
+            filename: Filename (for backward compatibility, maps to name)
+            mime_type: MIME type of the file (new API format)
+            adaccount_id: Ad account ID (UUID, can be None)
+            name: Name of the media file (can be None)
+        """
+        # Backward compatibility: convert old format to new format
+        if file_path is not None or content_type is not None:
+            import os
+
+            final_mime_type = mime_type or content_type
+            final_name = (
+                name or filename or (os.path.basename(file_path) if file_path else None)
+            )
+            return self.media.upload_media(
+                mime_type=final_mime_type,
+                adaccount_id=adaccount_id,
+                name=final_name,
+            )
+        # New API format
+        return self.media.upload_media(
+            mime_type=mime_type,
+            adaccount_id=adaccount_id,
+            name=name,
+        )
+
+    def get_media(self, media_id: str) -> Dict[str, Any]:
+        """Get information on a specific media. Delegates to media endpoint."""
+        return self.media.get_media(media_id)
 
     def verify_media(self, media_id: str) -> Dict[str, Any]:
         """Verify that a media upload is complete. Delegates to media endpoint."""
@@ -201,60 +253,117 @@ class UniversalAdsClient:
 
     def get_campaign_report(
         self,
-        start_date: str,
-        end_date: str,
-        adaccount_id: Optional[str] = None,
+        adaccount_id: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         campaign_ids: Optional[list] = None,
+        adset_ids: Optional[list] = None,
+        ad_ids: Optional[list] = None,
+        date_aggregation: Optional[Union[str, "ReportTimeAggregation"]] = None,
+        attribution_window: Optional[Union[str, "AttributionWindowEnum"]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Get campaign performance report. Delegates to report endpoint."""
+        from ..common.types import ReportTimeAggregation, AttributionWindowEnum
+
         return self.report.get_campaign_report(
+            adaccount_id=adaccount_id,
             start_date=start_date,
             end_date=end_date,
-            adaccount_id=adaccount_id,
             campaign_ids=campaign_ids,
+            adset_ids=adset_ids,
+            ad_ids=ad_ids,
+            date_aggregation=date_aggregation,
+            attribution_window=attribution_window,
             limit=limit,
             offset=offset,
         )
 
     def get_adset_report(
         self,
-        start_date: str,
-        end_date: str,
-        adaccount_id: Optional[str] = None,
+        adaccount_id: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        campaign_ids: Optional[list] = None,
         adset_ids: Optional[list] = None,
+        ad_ids: Optional[list] = None,
+        date_aggregation: Optional[Union[str, "ReportTimeAggregation"]] = None,
+        attribution_window: Optional[Union[str, "AttributionWindowEnum"]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Get adset performance report. Delegates to report endpoint."""
         return self.report.get_adset_report(
+            adaccount_id=adaccount_id,
             start_date=start_date,
             end_date=end_date,
-            adaccount_id=adaccount_id,
+            campaign_ids=campaign_ids,
             adset_ids=adset_ids,
+            ad_ids=ad_ids,
+            date_aggregation=date_aggregation,
+            attribution_window=attribution_window,
             limit=limit,
             offset=offset,
         )
 
     def get_ad_report(
         self,
-        start_date: str,
-        end_date: str,
-        adaccount_id: Optional[str] = None,
+        adaccount_id: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        campaign_ids: Optional[list] = None,
+        adset_ids: Optional[list] = None,
         ad_ids: Optional[list] = None,
+        date_aggregation: Optional[Union[str, "ReportTimeAggregation"]] = None,
+        attribution_window: Optional[Union[str, "AttributionWindowEnum"]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Get ad performance report. Delegates to report endpoint."""
         return self.report.get_ad_report(
+            adaccount_id=adaccount_id,
             start_date=start_date,
             end_date=end_date,
-            adaccount_id=adaccount_id,
+            campaign_ids=campaign_ids,
+            adset_ids=adset_ids,
             ad_ids=ad_ids,
+            date_aggregation=date_aggregation,
+            attribution_window=attribution_window,
             limit=limit,
             offset=offset,
         )
+
+    def schedule_report(
+        self,
+        start_date: str,
+        end_date: str,
+        entity_level: Union[str, "EntityLevel"],
+        adaccount_ids: list,
+        campaign_ids: Optional[list] = None,
+        adset_ids: Optional[list] = None,
+        ad_ids: Optional[list] = None,
+        dimensions: Optional[list] = None,
+        time_aggregation: Optional[Union[str, "TimeAggregation"]] = None,
+        limit: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Schedule a report for asynchronous processing. Delegates to report endpoint."""
+        return self.report.schedule_report(
+            start_date=start_date,
+            end_date=end_date,
+            entity_level=entity_level,
+            adaccount_ids=adaccount_ids,
+            campaign_ids=campaign_ids,
+            adset_ids=adset_ids,
+            ad_ids=ad_ids,
+            dimensions=dimensions,
+            time_aggregation=time_aggregation,
+            limit=limit,
+        )
+
+    def get_scheduled_report(self, scheduled_report_id: str) -> Dict[str, Any]:
+        """Get information about a scheduled report. Delegates to report endpoint."""
+        return self.report.get_scheduled_report(scheduled_report_id)
 
     # Segment Management Methods
     # These methods delegate to the segment endpoint for backward compatibility
@@ -262,18 +371,20 @@ class UniversalAdsClient:
     def create_segment(
         self,
         adaccount_id: str,
-        media_id: str,
         name: str,
         segment_type: str,
+        media_id: Optional[str] = None,
+        users: Optional[list] = None,
         description: Optional[str] = None,
         large_files: bool = False,
     ) -> Dict[str, Any]:
         """Create a new custom segment. Delegates to segment endpoint."""
         return self.segment.create_segment(
             adaccount_id=adaccount_id,
-            media_id=media_id,
             name=name,
             segment_type=segment_type,
+            media_id=media_id,
+            users=users,
             description=description,
             large_files=large_files,
         )
@@ -341,3 +452,22 @@ class UniversalAdsClient:
         return self.segment.update_segment_users(
             segment_id=segment_id, users=users, remove=remove
         )
+
+    # Me Endpoints
+    # These methods delegate to the me endpoint
+
+    def get_organizations(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get all organizations that the authenticated application has organization-level scopes for. Delegates to me endpoint."""
+        return self.me.get_organizations(limit=limit, offset=offset)
+
+    def get_adaccounts(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get all ad accounts that the authenticated application has ad account-level or organization-level scopes for. Delegates to me endpoint."""
+        return self.me.get_adaccounts(limit=limit, offset=offset)

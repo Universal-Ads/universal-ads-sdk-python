@@ -1,14 +1,9 @@
 """
-Universal Ads SDK
-
-A Python SDK for interacting with the Universal Ads Third Party API.
+Common utilities and shared definitions for the Universal Ads SDK.
 """
 
-from .client import UniversalAdsClient
-from .common import (
-    UniversalAdsError,
-    AuthenticationError,
-    APIError,
+from .exceptions import UniversalAdsError, AuthenticationError, APIError
+from .types import (
     ReportTimeAggregation,
     AttributionWindowEnum,
     SegmentStatus,
@@ -18,9 +13,7 @@ from .common import (
     TimeAggregation,
 )
 
-__version__ = "1.1.0"
 __all__ = [
-    "UniversalAdsClient",
     "UniversalAdsError",
     "AuthenticationError",
     "APIError",

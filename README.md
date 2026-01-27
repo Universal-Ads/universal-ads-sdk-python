@@ -8,7 +8,6 @@ A Python SDK for interacting with the Universal Ads Third Party API. This SDK pr
 - **Media Upload**: Upload and verify media files
 - **Segment Management**: Create and manage custom segments for targeted advertising
 - **Reports**: Access campaign, adset, and ad performance data
-- **Secure Authentication**: Request signing with private key authentication
 - **Automatic Retries**: Built-in retry logic for robust API interactions
 - **Type Hints**: Full type annotation support for better development experience
 
@@ -37,10 +36,11 @@ your-private-key-content
 ### 2. Upload Media
 
 ```python
-# Upload a media file
+# Upload a media file (using new API format)
 upload_info = client.upload_media(
-    file_path="/path/to/your/image.jpg",
-    content_type="image/jpeg"
+    mime_type="image/jpeg",
+    adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
+    name="my-image.jpg"
 )
 
 # Use the presigned URL to upload your file
@@ -49,8 +49,12 @@ with open("/path/to/your/image.jpg", "rb") as f:
     requests.put(upload_info["upload_url"], data=f)
 
 # Verify the upload
-media = client.verify_media(upload_info["media_id"])
+media = client.verify_media(upload_info["id"])
 print(f"Media verified: {media['status']}")
+
+# Get media information
+media_info = client.get_media(upload_info["id"])
+print(f"Media filename: {media_info['filename']}")
 ```
 
 ### 3. Create a Creative
@@ -68,10 +72,12 @@ print(f"Created creative: {creative['id']}")
 ### 4. Create a Custom Segment
 
 ```python
+# Option 1: Create segment with uploaded media file
 # First, upload a CSV or TXT file containing user identifiers (one per row)
 upload_info = client.upload_media(
-    file_path="/path/to/users.csv",
-    content_type="text/csv"
+    mime_type="text/csv",
+    adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
+    name="users.csv"
 )
 
 # Upload the file to the presigned URL
@@ -80,19 +86,28 @@ with open("/path/to/users.csv", "rb") as f:
     requests.put(upload_info["upload_url"], data=f)
 
 # Verify the upload
-media = client.verify_media(upload_info["media_id"])
+media = client.verify_media(upload_info["id"])
 
 # Create a new custom segment using the uploaded media
 segment = client.create_segment(
     adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
-    media_id=upload_info["media_id"],
     name="My Custom Segment",
-    segment_type="custom",
+    segment_type="email",
+    media_id=upload_info["id"],
     description="A segment for targeted advertising"
 )
 print(f"Created segment: {segment['id']}")
 
-# Alternatively, add users programmatically (for smaller lists)
+# Option 2: Create segment with users list directly (max 10,000 users)
+segment = client.create_segment(
+    adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
+    name="My Custom Segment",
+    segment_type="email",
+    users=["user@example.com", "another@example.com"],
+    description="A segment created with user list"
+)
+
+# Add or remove users from an existing segment
 client.update_segment_users(
     segment_id=segment["id"],
     users=["user@example.com", "another@example.com"],
@@ -105,11 +120,40 @@ client.update_segment_users(
 ```python
 # Get campaign performance report
 report = client.get_campaign_report(
+    adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
     start_date="2024-01-01",
     end_date="2024-01-31",
-    adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032"
+    date_aggregation="DAY",
+    attribution_window="7_day"
 )
 print(f"Report contains {len(report['data'])} campaigns")
+
+# Schedule an advanced report for asynchronous processing
+scheduled_report = client.schedule_report(
+    start_date="2024-01-01T00:00:00",
+    end_date="2024-01-31T23:59:59",
+    entity_level="campaign",
+    adaccount_ids=["3d49e08c-465d-4673-a445-d4ba3575f032"],
+    dimensions=["state", "dma"],
+    time_aggregation="day"
+)
+print(f"Scheduled report ID: {scheduled_report['scheduled_report_id']}")
+
+# Check scheduled report status
+report_status = client.get_scheduled_report(scheduled_report['scheduled_report_id'])
+print(f"Report status: {report_status['status']}")
+```
+
+### 6. Get Organizations and Ad Accounts
+
+```python
+# Get all organizations
+organizations = client.get_organizations(limit=50)
+print(f"Found {len(organizations['data'])} organizations")
+
+# Get all ad accounts
+adaccounts = client.get_adaccounts(limit=50)
+print(f"Found {len(adaccounts['data'])} ad accounts")
 ```
 
 ## API Reference
@@ -132,6 +176,9 @@ UniversalAdsClient(
 ```python
 creatives = client.get_creatives(
     adaccount_id="account-id",  # Optional: filter by account
+    campaign_id="campaign-id",  # Optional: filter by campaign
+    adset_id="adset-id",        # Optional: filter by adset
+    ad_id="ad-id",              # Optional: filter by ad
     limit=50,                    # Optional: limit results
     offset=0,                    # Optional: pagination offset
     sort="name_asc"              # Optional: sort order
@@ -169,11 +216,19 @@ client.delete_creative("creative-id")
 
 #### Upload Media
 ```python
+# New API format
 upload_info = client.upload_media(
-    file_path="/path/to/file",
-    content_type="image/jpeg",
-    filename="optional-filename.jpg"  # Optional
+    mime_type="image/jpeg",
+    adaccount_id="account-id",
+    name="my-image.jpg"
 )
+
+
+```
+
+#### Get Media
+```python
+media = client.get_media("media-id")
 ```
 
 #### Verify Media
@@ -186,22 +241,30 @@ media = client.verify_media("media-id")
 #### Campaign Report
 ```python
 report = client.get_campaign_report(
-    start_date="2024-01-01",
-    end_date="2024-01-31",
-    adaccount_id="account-id",      # Optional
-    campaign_ids=["id1", "id2"],     # Optional
-    limit=100,                       # Optional
-    offset=0                         # Optional
+    adaccount_id="account-id",      # Required
+    start_date="2024-01-01",        # Optional
+    end_date="2024-01-31",          # Optional
+    campaign_ids=["id1", "id2"],   # Optional
+    adset_ids=["id1", "id2"],       # Optional
+    ad_ids=["id1", "id2"],          # Optional
+    date_aggregation="DAY",         # Optional: HOUR, DAY, LIFETIME, TOTAL
+    attribution_window="7_day",     # Optional: 7_day, 14_day, 30_day
+    limit=100,                      # Optional
+    offset=0                        # Optional
 )
 ```
 
 #### Adset Report
 ```python
 report = client.get_adset_report(
-    start_date="2024-01-01",
-    end_date="2024-01-31",
-    adaccount_id="account-id",      # Optional
-    adset_ids=["id1", "id2"],        # Optional
+    adaccount_id="account-id",      # Required
+    start_date="2024-01-01",        # Optional
+    end_date="2024-01-31",          # Optional
+    campaign_ids=["id1", "id2"],   # Optional
+    adset_ids=["id1", "id2"],       # Optional
+    ad_ids=["id1", "id2"],          # Optional
+    date_aggregation="DAY",          # Optional: HOUR, DAY, LIFETIME, TOTAL
+    attribution_window="7_day",      # Optional: 7_day, 14_day, 30_day
     limit=100,                       # Optional
     offset=0                         # Optional
 )
@@ -210,13 +273,38 @@ report = client.get_adset_report(
 #### Ad Report
 ```python
 report = client.get_ad_report(
-    start_date="2024-01-01",
-    end_date="2024-01-31",
-    adaccount_id="account-id",      # Optional
-    ad_ids=["id1", "id2"],           # Optional
+    adaccount_id="account-id",      # Required
+    start_date="2024-01-01",        # Optional
+    end_date="2024-01-31",          # Optional
+    campaign_ids=["id1", "id2"],   # Optional
+    adset_ids=["id1", "id2"],       # Optional
+    ad_ids=["id1", "id2"],          # Optional
+    date_aggregation="DAY",          # Optional: HOUR, DAY, LIFETIME, TOTAL
+    attribution_window="7_day",     # Optional: 7_day, 14_day, 30_day
     limit=100,                       # Optional
     offset=0                         # Optional
 )
+```
+
+#### Schedule Report
+```python
+scheduled_report = client.schedule_report(
+    start_date="2024-01-01T00:00:00",
+    end_date="2024-01-31T23:59:59",
+    entity_level="campaign",         # campaign, adset, or ad
+    adaccount_ids=["account-id"],
+    campaign_ids=["id1", "id2"],    # Optional
+    adset_ids=["id1", "id2"],       # Optional
+    ad_ids=["id1", "id2"],          # Optional
+    dimensions=["state", "dma"],     # Optional: device_type, dma, state, zip_code
+    time_aggregation="day",          # Optional: hour or day
+    limit=50000                      # Optional, default: 100000
+)
+```
+
+#### Get Scheduled Report
+```python
+report_status = client.get_scheduled_report("scheduled-report-id")
 ```
 
 ### Segment Management
@@ -271,15 +359,25 @@ segment = client.get_segment("segment-id")
 
 #### Create Segment
 ```python
+# Option 1: Create segment with media file
 # Note: media_id must reference a CSV or TXT file uploaded via upload_media()
 # The file must contain one identifier per row (see Segment File Format Requirements above)
 segment = client.create_segment(
     adaccount_id="account-id",
-    media_id="media-id",                # From upload_media() response
     name="Segment Name",
-    segment_type="custom",
-    description="Optional description",  # Optional
-    large_files=False                    # Optional: set True for files > 25MB
+    segment_type="email",              # email, ctv, ip_address, mobile_ad_id, etc.
+    media_id="media-id",                # From upload_media() response
+    description="Optional description", # Optional
+    large_files=False                   # Optional: set True for files > 25MB
+)
+
+# Option 2: Create segment with users list (max 10,000 users)
+segment = client.create_segment(
+    adaccount_id="account-id",
+    name="Segment Name",
+    segment_type="email",
+    users=["user1@example.com", "user2@example.com"],
+    description="Optional description"  # Optional
 )
 ```
 
@@ -323,6 +421,24 @@ client.update_segment_users(
 #### Delete Segment
 ```python
 client.delete_segment("segment-id")
+```
+
+### Me Endpoints
+
+#### Get Organizations
+```python
+organizations = client.get_organizations(
+    limit=50,    # Optional: limit results (default: 10, max: 100)
+    offset=0     # Optional: pagination offset (default: 0)
+)
+```
+
+#### Get Ad Accounts
+```python
+adaccounts = client.get_adaccounts(
+    limit=50,    # Optional: limit results (default: 10, max: 100)
+    offset=0     # Optional: pagination offset (default: 0)
+)
 ```
 
 ## Error Handling

@@ -12,6 +12,9 @@ class CreativeEndpoint(BaseEndpoint):
     def get_creatives(
         self,
         adaccount_id: Optional[str] = None,
+        campaign_id: Optional[str] = None,
+        adset_id: Optional[str] = None,
+        ad_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         sort: Optional[str] = None,
@@ -21,6 +24,9 @@ class CreativeEndpoint(BaseEndpoint):
 
         Args:
             adaccount_id: Filter by ad account ID
+            campaign_id: Filter by campaign ID
+            adset_id: Filter by adset ID
+            ad_id: Filter by ad ID
             limit: Maximum number of results to return
             offset: Number of results to skip
             sort: Sort field and direction (e.g., 'id_asc', 'name_desc')
@@ -31,6 +37,12 @@ class CreativeEndpoint(BaseEndpoint):
         params = {}
         if adaccount_id:
             params["adaccount_id"] = adaccount_id
+        if campaign_id:
+            params["campaign_id"] = campaign_id
+        if adset_id:
+            params["adset_id"] = adset_id
+        if ad_id:
+            params["ad_id"] = ad_id
         if limit:
             params["limit"] = limit
         if offset:

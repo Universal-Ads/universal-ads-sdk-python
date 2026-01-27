@@ -12,9 +12,10 @@ class SegmentEndpoint(BaseEndpoint):
     def create_segment(
         self,
         adaccount_id: str,
-        media_id: str,
         name: str,
         segment_type: str,
+        media_id: Optional[str] = None,
+        users: Optional[List[str]] = None,
         description: Optional[str] = None,
         large_files: bool = False,
     ) -> Dict[str, Any]:
@@ -23,22 +24,41 @@ class SegmentEndpoint(BaseEndpoint):
 
         Args:
             adaccount_id: The ad account ID (UUID)
-            media_id: The media ID (UUID) to associate with the segment
             name: Segment name (1-255 characters)
             segment_type: Type of segment to create
+            media_id: The media ID (UUID) to associate with the segment. Required if users is not provided.
+            users: List of user identifiers (emails, IPs, or UUIDs as strings) to include in the segment.
+                   Maximum 10,000 users per request. Required if media_id is not provided.
             description: Optional segment description (max 255 characters)
-            large_files: Whether to use large files processing (default: False)
+            large_files: Whether to use large files processing (default: False). Only relevant when media_id is provided.
 
         Returns:
             Dictionary containing the created segment data
+
+        Raises:
+            ValueError: If neither media_id nor users is provided, or if users list exceeds 10,000 items
         """
+        # Validation: either media_id or users must be provided
+        if not media_id and not users:
+            raise ValueError("Either media_id or users must be provided")
+
+        # Validation: users list cannot exceed 10,000 items
+        if users and len(users) > 10000:
+            raise ValueError("Users list cannot exceed 10,000 items")
+
         data = {
             "adaccount_id": adaccount_id,
-            "media_id": media_id,
             "name": name,
             "segment_type": segment_type,
-            "large_files": large_files,
         }
+
+        if media_id:
+            data["media_id"] = media_id
+            data["large_files"] = large_files
+
+        if users:
+            data["users"] = users
+
         if description is not None:
             data["description"] = description
 
