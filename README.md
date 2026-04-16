@@ -1,10 +1,12 @@
 # Universal Ads SDK
 
-A Python SDK for interacting with the Universal Ads Third Party API. This SDK provides a simple and intuitive interface for managing creatives, uploading media, creating custom segments, and accessing performance reports.
+A Python SDK for interacting with the Universal Ads Third Party API. This SDK provides a simple and intuitive interface for managing campaigns, ad sets, ads, creatives, pixels, media uploads, custom segments, and performance reports.
 
 ## Features
 
 - **Creative Management**: Create, read, update, and delete creatives
+- **Campaign, Ad Set, and Ad Management**: List, create, get, and update campaign resources
+- **Pixel Access**: List pixels, get pixel details, and retrieve pixel events
 - **Media Upload**: Upload and verify media files
 - **Segment Management**: Create and manage custom segments for targeted advertising
 - **Reports**: Access campaign, adset, and ad performance data
@@ -297,7 +299,8 @@ scheduled_report = client.schedule_report(
     adset_ids=["id1", "id2"],       # Optional
     ad_ids=["id1", "id2"],          # Optional
     dimensions=["state", "dma"],     # Optional: device_type, dma, state, zip_code
-    time_aggregation="day",          # Optional: hour or day
+    time_aggregation="day",          # Optional: hour, day, or total
+    attribution_window="7_day",      # Optional: 7_day, 14_day, 30_day
     limit=50000                      # Optional, default: 100000
 )
 ```
@@ -305,6 +308,86 @@ scheduled_report = client.schedule_report(
 #### Get Scheduled Report
 ```python
 report_status = client.get_scheduled_report("scheduled-report-id")
+```
+
+### Campaign Management
+
+#### Get All Campaigns
+```python
+campaigns = client.get_campaigns(
+    adaccount_id="account-id",  # Optional: filter by account
+    limit=50,
+    offset=0,
+    sort="created_at_desc"
+)
+```
+
+#### Create / Update Campaign
+```python
+campaign = client.create_campaign(
+    adaccount_id="account-id",
+    name="Spring Campaign",
+    objective="traffic"
+)
+
+updated = client.update_campaign(campaign["id"], name="Spring Campaign v2")
+```
+
+### Ad Set Management
+
+#### Get All Ad Sets
+```python
+adsets = client.get_adsets(
+    adaccount_id="account-id",
+    campaign_id="campaign-id",
+    limit=50,
+    offset=0
+)
+```
+
+#### Create / Update Ad Set
+```python
+adset = client.create_adset(
+    adaccount_id="account-id",
+    campaign_id="campaign-id",
+    name="Adults 25-44"
+)
+
+updated = client.update_adset(adset["id"], name="Adults 25-54")
+```
+
+### Ad Management
+
+#### Get All Ads
+```python
+ads = client.get_ads(
+    adaccount_id="account-id",
+    campaign_id="campaign-id",
+    adset_id="adset-id",
+    limit=50,
+    offset=0
+)
+```
+
+#### Create / Update Ad
+```python
+ad = client.create_ad(
+    adaccount_id="account-id",
+    adset_id="adset-id",
+    creative_id="creative-id",
+    name="Homepage Hero Ad"
+)
+
+updated = client.update_ad(ad["id"], name="Homepage Hero Ad v2")
+```
+
+### Pixel Endpoints
+
+#### Get Pixels
+```python
+pixels = client.get_pixels(adaccount_id="account-id", limit=50, offset=0)
+pixel = client.get_pixel("pixel-id")
+events = client.get_pixel_events("pixel-id", limit=100, offset=0)
 ```
 
 ### Segment Management
@@ -436,8 +519,10 @@ organizations = client.get_organizations(
 #### Get Ad Accounts
 ```python
 adaccounts = client.get_adaccounts(
-    limit=50,    # Optional: limit results (default: 10, max: 100)
-    offset=0     # Optional: pagination offset (default: 0)
+    limit=50,                                      # Optional: limit results (default: 10, max: 100)
+    offset=0,                                      # Optional: pagination offset (default: 0)
+    organization_ids=["org-id-1", "org-id-2"],    # Optional: repeatable organization_id query filters
+    authorization_statuses=["authorized"]          # Optional: authorized, not_authorized
 )
 ```
 

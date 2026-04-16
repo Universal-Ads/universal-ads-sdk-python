@@ -78,7 +78,7 @@ class CreativeEndpoint(BaseEndpoint):
         Returns:
             Dictionary containing the created creative data
         """
-        data = {"ad_account_id": adaccount_id, "name": name, "media_id": media_id}
+        data = {"adaccount_id": adaccount_id, "name": name, "media_id": media_id}
         return self._make_request("POST", "/creative", data=data)
 
     def update_creative(

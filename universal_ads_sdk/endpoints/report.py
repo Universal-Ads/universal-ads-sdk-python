@@ -212,6 +212,7 @@ class ReportEndpoint(BaseEndpoint):
         ad_ids: Optional[List[str]] = None,
         dimensions: Optional[List[str]] = None,
         time_aggregation: Optional[Union[TimeAggregation, str]] = None,
+        attribution_window: Optional[Union[AttributionWindowEnum, str]] = None,
         limit: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
@@ -226,7 +227,8 @@ class ReportEndpoint(BaseEndpoint):
             adset_ids: Optional list of adset IDs
             ad_ids: Optional list of ad IDs
             dimensions: Optional dimensions to group by (device_type, dma, state, zip_code)
-            time_aggregation: Time aggregation (hour or day)
+            time_aggregation: Time aggregation (hour, day, or total)
+            attribution_window: Attribution window for conversion metrics (7_day, 14_day, 30_day)
             limit: Maximum number of rows (default: 100000)
 
         Returns:
@@ -256,6 +258,12 @@ class ReportEndpoint(BaseEndpoint):
                 time_aggregation.value
                 if isinstance(time_aggregation, TimeAggregation)
                 else time_aggregation
+            )
+        if attribution_window:
+            data["attribution_window"] = (
+                attribution_window.value
+                if isinstance(attribution_window, AttributionWindowEnum)
+                else attribution_window
             )
         if limit:
             data["limit"] = limit

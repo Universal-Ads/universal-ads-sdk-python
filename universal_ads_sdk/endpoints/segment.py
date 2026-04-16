@@ -70,7 +70,9 @@ class SegmentEndpoint(BaseEndpoint):
         name: Optional[str] = None,
         description: Optional[str] = None,
         status: Optional[str] = None,
+        audience_ids: Optional[List[str]] = None,
         segment_ids: Optional[List[str]] = None,
+        segment_type: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         sort: Optional[str] = None,
@@ -83,7 +85,9 @@ class SegmentEndpoint(BaseEndpoint):
             name: Filter by segment name
             description: Filter by segment description
             status: Filter by segment status (e.g., active, inactive)
-            segment_ids: List of segment IDs to include (UUIDs)
+            audience_ids: List of audience IDs to include (OpenAPI query param)
+            segment_ids: Backward compatible alias for audience_ids
+            segment_type: Filter by audience segment type
             limit: Maximum number of results to return
             offset: Number of results to skip
             sort: Sort field and direction (e.g., 'id_asc', 'name_desc')
@@ -99,8 +103,12 @@ class SegmentEndpoint(BaseEndpoint):
             params["description"] = description
         if status:
             params["status"] = status
-        if segment_ids:
-            params["segment_ids"] = segment_ids
+        # OpenAPI uses audience_ids; keep segment_ids as a backward-compatible alias.
+        effective_audience_ids = audience_ids or segment_ids
+        if effective_audience_ids:
+            params["audience_ids"] = effective_audience_ids
+        if segment_type:
+            params["segment_type"] = segment_type
         if limit:
             params["limit"] = limit
         if offset:
