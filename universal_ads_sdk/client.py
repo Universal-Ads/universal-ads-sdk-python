@@ -3,7 +3,7 @@ Main client for the Universal Ads SDK.
 """
 
 import json
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, List
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -16,6 +16,10 @@ from .endpoints import (
     ReportEndpoint,
     SegmentEndpoint,
     MeEndpoint,
+    CampaignEndpoint,
+    AdsetEndpoint,
+    AdEndpoint,
+    PixelEndpoint,
 )
 
 
@@ -73,6 +77,10 @@ class UniversalAdsClient:
         self.report = ReportEndpoint(self._make_request)
         self.segment = SegmentEndpoint(self._make_request)
         self.me = MeEndpoint(self._make_request)
+        self.campaign = CampaignEndpoint(self._make_request)
+        self.adset = AdsetEndpoint(self._make_request)
+        self.ad = AdEndpoint(self._make_request)
+        self.pixel = PixelEndpoint(self._make_request)
 
     def _make_request(
         self,
@@ -265,8 +273,6 @@ class UniversalAdsClient:
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Get campaign performance report. Delegates to report endpoint."""
-        from ..common.types import ReportTimeAggregation, AttributionWindowEnum
-
         return self.report.get_campaign_report(
             adaccount_id=adaccount_id,
             start_date=start_date,
@@ -345,6 +351,7 @@ class UniversalAdsClient:
         ad_ids: Optional[list] = None,
         dimensions: Optional[list] = None,
         time_aggregation: Optional[Union[str, "TimeAggregation"]] = None,
+        attribution_window: Optional[Union[str, "AttributionWindowEnum"]] = None,
         limit: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Schedule a report for asynchronous processing. Delegates to report endpoint."""
@@ -358,6 +365,7 @@ class UniversalAdsClient:
             ad_ids=ad_ids,
             dimensions=dimensions,
             time_aggregation=time_aggregation,
+            attribution_window=attribution_window,
             limit=limit,
         )
 
@@ -395,7 +403,9 @@ class UniversalAdsClient:
         name: Optional[str] = None,
         description: Optional[str] = None,
         status: Optional[str] = None,
+        audience_ids: Optional[list] = None,
         segment_ids: Optional[list] = None,
+        segment_type: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         sort: Optional[str] = None,
@@ -406,7 +416,9 @@ class UniversalAdsClient:
             name=name,
             description=description,
             status=status,
+            audience_ids=audience_ids,
             segment_ids=segment_ids,
+            segment_type=segment_type,
             limit=limit,
             offset=offset,
             sort=sort,
@@ -468,6 +480,154 @@ class UniversalAdsClient:
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
+        organization_ids: Optional[List[str]] = None,
+        authorization_statuses: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Get all ad accounts that the authenticated application has ad account-level or organization-level scopes for. Delegates to me endpoint."""
-        return self.me.get_adaccounts(limit=limit, offset=offset)
+        return self.me.get_adaccounts(
+            limit=limit,
+            offset=offset,
+            organization_ids=organization_ids,
+            authorization_statuses=authorization_statuses,
+        )
+
+    # Campaign Management Methods
+    # These methods delegate to the campaign endpoint
+
+    def get_campaigns(
+        self,
+        adaccount_id: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        sort: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Get a list of campaigns. Delegates to campaign endpoint."""
+        return self.campaign.get_campaigns(
+            adaccount_id=adaccount_id,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+            **kwargs,
+        )
+
+    def get_campaign(self, campaign_id: str) -> Dict[str, Any]:
+        """Get a specific campaign by ID. Delegates to campaign endpoint."""
+        return self.campaign.get_campaign(campaign_id)
+
+    def create_campaign(self, **data) -> Dict[str, Any]:
+        """Create a campaign. Delegates to campaign endpoint."""
+        return self.campaign.create_campaign(**data)
+
+    def update_campaign(self, campaign_id: str, **data) -> Dict[str, Any]:
+        """Update a campaign. Delegates to campaign endpoint."""
+        return self.campaign.update_campaign(campaign_id, **data)
+
+    # Ad Set Management Methods
+    # These methods delegate to the adset endpoint
+
+    def get_adsets(
+        self,
+        adaccount_id: Optional[str] = None,
+        campaign_id: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        sort: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Get a list of ad sets. Delegates to adset endpoint."""
+        return self.adset.get_adsets(
+            adaccount_id=adaccount_id,
+            campaign_id=campaign_id,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+            **kwargs,
+        )
+
+    def get_adset(self, adset_id: str) -> Dict[str, Any]:
+        """Get a specific ad set by ID. Delegates to adset endpoint."""
+        return self.adset.get_adset(adset_id)
+
+    def create_adset(self, **data) -> Dict[str, Any]:
+        """Create an ad set. Delegates to adset endpoint."""
+        return self.adset.create_adset(**data)
+
+    def update_adset(self, adset_id: str, **data) -> Dict[str, Any]:
+        """Update an ad set. Delegates to adset endpoint."""
+        return self.adset.update_adset(adset_id, **data)
+
+    # Ad Management Methods
+    # These methods delegate to the ad endpoint
+
+    def get_ads(
+        self,
+        adaccount_id: Optional[str] = None,
+        campaign_id: Optional[str] = None,
+        adset_id: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        sort: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Get a list of ads. Delegates to ad endpoint."""
+        return self.ad.get_ads(
+            adaccount_id=adaccount_id,
+            campaign_id=campaign_id,
+            adset_id=adset_id,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+            **kwargs,
+        )
+
+    def get_ad(self, ad_id: str) -> Dict[str, Any]:
+        """Get a specific ad by ID. Delegates to ad endpoint."""
+        return self.ad.get_ad(ad_id)
+
+    def create_ad(self, **data) -> Dict[str, Any]:
+        """Create an ad. Delegates to ad endpoint."""
+        return self.ad.create_ad(**data)
+
+    def update_ad(self, ad_id: str, **data) -> Dict[str, Any]:
+        """Update an ad. Delegates to ad endpoint."""
+        return self.ad.update_ad(ad_id, **data)
+
+    # Pixel Methods
+    # These methods delegate to the pixel endpoint
+
+    def get_pixels(
+        self,
+        adaccount_id: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        sort: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Get a list of pixels. Delegates to pixel endpoint."""
+        return self.pixel.get_pixels(
+            adaccount_id=adaccount_id,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+            **kwargs,
+        )
+
+    def get_pixel(self, pixel_id: str) -> Dict[str, Any]:
+        """Get a specific pixel by ID. Delegates to pixel endpoint."""
+        return self.pixel.get_pixel(pixel_id)
+
+    def get_pixel_events(
+        self,
+        pixel_id: str,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Get pixel events. Delegates to pixel endpoint."""
+        return self.pixel.get_pixel_events(
+            pixel_id=pixel_id,
+            limit=limit,
+            offset=offset,
+            **kwargs,
+        )

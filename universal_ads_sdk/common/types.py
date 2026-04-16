@@ -22,6 +22,26 @@ class AttributionWindowEnum(str, Enum):
     THIRTY_DAY = "30_day"
 
 
+class AdAccountAuthorizationStatus(str, Enum):
+    """Authorization status values for ad account filtering."""
+
+    AUTHORIZED = "authorized"
+    NOT_AUTHORIZED = "not_authorized"
+
+
+class PerformanceReportField(str, Enum):
+    """Common performance fields accepted by report endpoints."""
+
+    ALL = "all"
+    SPEND = "spend"
+    IMPRESSIONS = "impressions"
+    CLICKS = "clicks"
+    CONVERSIONS = "conversions"
+    CTR = "ctr"
+    CPM = "cpm"
+    CPC = "cpc"
+
+
 class SegmentStatus(str, Enum):
     """Status values for custom segments."""
 
@@ -69,3 +89,4 @@ class TimeAggregation(str, Enum):
 
     HOUR = "hour"
     DAY = "day"
+    TOTAL = "total"

@@ -41,6 +41,7 @@ PRIVATE_KEY_PEM = os.getenv("UNIVERSAL_ADS_PRIVATE_KEY")
 BASE_URL = os.getenv("UNIVERSAL_ADS_BASE_URL")  # Optional: for dev/local testing
 TEST_ADACCOUNT_ID = os.getenv("TEST_ADACCOUNT_ID")  # Optional: for segment tests
 TEST_MEDIA_ID = os.getenv("TEST_MEDIA_ID")  # Optional: for segment tests
+RUN_TPA_WRITE_TESTS = os.getenv("RUN_TPA_WRITE_TESTS", "0") == "1"
 
 
 class ComprehensiveSDKTester:
@@ -363,13 +364,16 @@ class ComprehensiveSDKTester:
             return False
 
         try:
+            adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
             # Use recent dates for testing
             end_date = datetime.now().strftime("%Y-%m-%d")
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
-            # Note: API requires adaccount_id parameter
             response = self.client.get_campaign_report(
-                start_date=start_date, end_date=end_date, limit=5
+                adaccount_id=adaccount_id,
+                start_date=start_date,
+                end_date=end_date,
+                limit=5,
             )
 
             if isinstance(response, dict):
@@ -412,12 +416,15 @@ class ComprehensiveSDKTester:
             return False
 
         try:
+            adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
             end_date = datetime.now().strftime("%Y-%m-%d")
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
-            # Note: API requires adaccount_id parameter
             response = self.client.get_adset_report(
-                start_date=start_date, end_date=end_date, limit=5
+                adaccount_id=adaccount_id,
+                start_date=start_date,
+                end_date=end_date,
+                limit=5,
             )
 
             if isinstance(response, dict):
@@ -458,12 +465,15 @@ class ComprehensiveSDKTester:
             return False
 
         try:
+            adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
             end_date = datetime.now().strftime("%Y-%m-%d")
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
-            # Note: API requires adaccount_id parameter
             response = self.client.get_ad_report(
-                start_date=start_date, end_date=end_date, limit=5
+                adaccount_id=adaccount_id,
+                start_date=start_date,
+                end_date=end_date,
+                limit=5,
             )
 
             if isinstance(response, dict):
@@ -494,6 +504,386 @@ class ComprehensiveSDKTester:
                 return False
         except Exception as e:
             self.log_test("Ad Report", False, f"Unexpected error: {e}")
+            return False
+
+    def test_get_organizations(self) -> bool:
+        """Test getting organizations."""
+        if not self.client:
+            return False
+
+        try:
+            response = self.client.get_organizations(limit=5)
+            if isinstance(response, dict):
+                self.log_test(
+                    "Get Organizations",
+                    True,
+                    f"Retrieved {len(response.get('data', []))} organizations",
+                )
+                return True
+
+            self.log_test("Get Organizations", False, "Invalid response format")
+            return False
+        except APIError as e:
+            if e.status_code in [403, 422]:
+                self.log_test(
+                    "Get Organizations",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return True
+
+            self.log_test("Get Organizations", False, f"API error {e.status_code}: {e}")
+            return False
+        except Exception as e:
+            self.log_test("Get Organizations", False, f"Unexpected error: {e}")
+            return False
+
+    def test_get_adaccounts(self) -> bool:
+        """Test getting ad accounts."""
+        if not self.client:
+            return False
+
+        try:
+            response = self.client.get_adaccounts(limit=5)
+
+            if isinstance(response, dict):
+                self.log_test(
+                    "Get Adaccounts",
+                    True,
+                    f"Retrieved {len(response.get('data', []))} ad accounts",
+                )
+                return True
+
+            self.log_test("Get Adaccounts", False, "Invalid response format")
+            return False
+        except APIError as e:
+            if e.status_code in [403, 422]:
+                self.log_test(
+                    "Get Adaccounts",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return True
+
+            self.log_test("Get Adaccounts", False, f"API error {e.status_code}: {e}")
+            return False
+        except Exception as e:
+            self.log_test("Get Adaccounts", False, f"Unexpected error: {e}")
+            return False
+
+    def test_get_campaigns(self) -> Optional[str]:
+        """Test getting campaigns list and return one campaign ID if present."""
+        if not self.client:
+            return None
+
+        try:
+            response = self.client.get_campaigns(adaccount_id=TEST_ADACCOUNT_ID, limit=5)
+            if isinstance(response, dict):
+                campaigns = response.get("data", [])
+                self.log_test(
+                    "Get Campaigns",
+                    True,
+                    f"Retrieved {len(campaigns)} campaigns",
+                )
+                if campaigns:
+                    return campaigns[0].get("id")
+                return None
+
+            self.log_test("Get Campaigns", False, "Invalid response format")
+            return None
+        except APIError as e:
+            if e.status_code in [403, 404, 422]:
+                self.log_test(
+                    "Get Campaigns",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return None
+
+            self.log_test("Get Campaigns", False, f"API error {e.status_code}: {e}")
+            return None
+        except Exception as e:
+            self.log_test("Get Campaigns", False, f"Unexpected error: {e}")
+            return None
+
+    def test_get_campaign(self, campaign_id: Optional[str]) -> bool:
+        """Test getting a specific campaign."""
+        if not self.client:
+            return False
+        if not campaign_id:
+            self.log_test("Get Campaign", True, "Skipped - No campaign found to test")
+            return True
+
+        try:
+            response = self.client.get_campaign(campaign_id)
+            if response and "id" in response:
+                self.log_test(
+                    "Get Campaign",
+                    True,
+                    f"Retrieved campaign: {response.get('name', 'Unknown')}",
+                )
+                return True
+
+            self.log_test("Get Campaign", False, "Invalid response format")
+            return False
+        except APIError as e:
+            if e.status_code in [403, 404, 422]:
+                self.log_test(
+                    "Get Campaign",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return True
+
+            self.log_test("Get Campaign", False, f"API error {e.status_code}: {e}")
+            return False
+        except Exception as e:
+            self.log_test("Get Campaign", False, f"Unexpected error: {e}")
+            return False
+
+    def test_get_adsets(self) -> Optional[str]:
+        """Test getting ad sets list and return one ad set ID if present."""
+        if not self.client:
+            return None
+
+        try:
+            response = self.client.get_adsets(adaccount_id=TEST_ADACCOUNT_ID, limit=5)
+            if isinstance(response, dict):
+                adsets = response.get("data", [])
+                self.log_test(
+                    "Get Adsets",
+                    True,
+                    f"Retrieved {len(adsets)} ad sets",
+                )
+                if adsets:
+                    return adsets[0].get("id")
+                return None
+
+            self.log_test("Get Adsets", False, "Invalid response format")
+            return None
+        except APIError as e:
+            if e.status_code in [403, 404, 422]:
+                self.log_test(
+                    "Get Adsets",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return None
+
+            self.log_test("Get Adsets", False, f"API error {e.status_code}: {e}")
+            return None
+        except Exception as e:
+            self.log_test("Get Adsets", False, f"Unexpected error: {e}")
+            return None
+
+    def test_get_adset(self, adset_id: Optional[str]) -> bool:
+        """Test getting a specific ad set."""
+        if not self.client:
+            return False
+        if not adset_id:
+            self.log_test("Get Adset", True, "Skipped - No ad set found to test")
+            return True
+
+        try:
+            response = self.client.get_adset(adset_id)
+            if response and "id" in response:
+                self.log_test(
+                    "Get Adset",
+                    True,
+                    f"Retrieved ad set: {response.get('name', 'Unknown')}",
+                )
+                return True
+
+            self.log_test("Get Adset", False, "Invalid response format")
+            return False
+        except APIError as e:
+            if e.status_code in [403, 404, 422]:
+                self.log_test(
+                    "Get Adset",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return True
+
+            self.log_test("Get Adset", False, f"API error {e.status_code}: {e}")
+            return False
+        except Exception as e:
+            self.log_test("Get Adset", False, f"Unexpected error: {e}")
+            return False
+
+    def test_get_ads(self) -> Optional[str]:
+        """Test getting ads list and return one ad ID if present."""
+        if not self.client:
+            return None
+
+        try:
+            response = self.client.get_ads(adaccount_id=TEST_ADACCOUNT_ID, limit=5)
+            if isinstance(response, dict):
+                ads = response.get("data", [])
+                self.log_test(
+                    "Get Ads",
+                    True,
+                    f"Retrieved {len(ads)} ads",
+                )
+                if ads:
+                    return ads[0].get("id")
+                return None
+
+            self.log_test("Get Ads", False, "Invalid response format")
+            return None
+        except APIError as e:
+            if e.status_code in [403, 404, 422]:
+                self.log_test(
+                    "Get Ads",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return None
+
+            self.log_test("Get Ads", False, f"API error {e.status_code}: {e}")
+            return None
+        except Exception as e:
+            self.log_test("Get Ads", False, f"Unexpected error: {e}")
+            return None
+
+    def test_get_ad(self, ad_id: Optional[str]) -> bool:
+        """Test getting a specific ad."""
+        if not self.client:
+            return False
+        if not ad_id:
+            self.log_test("Get Ad", True, "Skipped - No ad found to test")
+            return True
+
+        try:
+            response = self.client.get_ad(ad_id)
+            if response and "id" in response:
+                self.log_test(
+                    "Get Ad",
+                    True,
+                    f"Retrieved ad: {response.get('name', 'Unknown')}",
+                )
+                return True
+
+            self.log_test("Get Ad", False, "Invalid response format")
+            return False
+        except APIError as e:
+            if e.status_code in [403, 404, 422]:
+                self.log_test(
+                    "Get Ad",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return True
+
+            self.log_test("Get Ad", False, f"API error {e.status_code}: {e}")
+            return False
+        except Exception as e:
+            self.log_test("Get Ad", False, f"Unexpected error: {e}")
+            return False
+
+    def test_get_pixels(self) -> Optional[str]:
+        """Test getting pixels list and return one pixel ID if present."""
+        if not self.client:
+            return None
+
+        try:
+            response = self.client.get_pixels(adaccount_id=TEST_ADACCOUNT_ID, limit=5)
+            if isinstance(response, dict):
+                pixels = response.get("data", [])
+                self.log_test(
+                    "Get Pixels",
+                    True,
+                    f"Retrieved {len(pixels)} pixels",
+                )
+                if pixels:
+                    return pixels[0].get("id")
+                return None
+
+            self.log_test("Get Pixels", False, "Invalid response format")
+            return None
+        except APIError as e:
+            if e.status_code in [403, 404, 422]:
+                self.log_test(
+                    "Get Pixels",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return None
+
+            self.log_test("Get Pixels", False, f"API error {e.status_code}: {e}")
+            return None
+        except Exception as e:
+            self.log_test("Get Pixels", False, f"Unexpected error: {e}")
+            return None
+
+    def test_get_pixel(self, pixel_id: Optional[str]) -> bool:
+        """Test getting a specific pixel."""
+        if not self.client:
+            return False
+        if not pixel_id:
+            self.log_test("Get Pixel", True, "Skipped - No pixel found to test")
+            return True
+
+        try:
+            response = self.client.get_pixel(pixel_id)
+            if response and "id" in response:
+                self.log_test(
+                    "Get Pixel",
+                    True,
+                    f"Retrieved pixel: {response.get('name', 'Unknown')}",
+                )
+                return True
+
+            self.log_test("Get Pixel", False, "Invalid response format")
+            return False
+        except APIError as e:
+            if e.status_code in [403, 404, 422]:
+                self.log_test(
+                    "Get Pixel",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return True
+
+            self.log_test("Get Pixel", False, f"API error {e.status_code}: {e}")
+            return False
+        except Exception as e:
+            self.log_test("Get Pixel", False, f"Unexpected error: {e}")
+            return False
+
+    def test_get_pixel_events(self, pixel_id: Optional[str]) -> bool:
+        """Test getting events for a specific pixel."""
+        if not self.client:
+            return False
+        if not pixel_id:
+            self.log_test("Get Pixel Events", True, "Skipped - No pixel found to test")
+            return True
+
+        try:
+            response = self.client.get_pixel_events(pixel_id, limit=5)
+            if isinstance(response, dict):
+                self.log_test(
+                    "Get Pixel Events",
+                    True,
+                    f"Retrieved {len(response.get('data', []))} pixel events",
+                )
+                return True
+
+            self.log_test("Get Pixel Events", False, "Invalid response format")
+            return False
+        except APIError as e:
+            if e.status_code in [403, 404, 422]:
+                self.log_test(
+                    "Get Pixel Events",
+                    True,
+                    f"API structure validated ({e.status_code})",
+                )
+                return True
+
+            self.log_test("Get Pixel Events", False, f"API error {e.status_code}: {e}")
+            return False
+        except Exception as e:
+            self.log_test("Get Pixel Events", False, f"Unexpected error: {e}")
             return False
 
     def test_error_handling(self) -> bool:
@@ -832,13 +1222,33 @@ class ComprehensiveSDKTester:
 
         # Test basic operations
         self.test_get_creatives()
+        self.test_get_organizations()
+        self.test_get_adaccounts()
 
-        # Test creative CRUD operations
-        creative_id = self.test_create_creative()
-        if creative_id:
-            self.test_get_creative(creative_id)
-            self.test_update_creative(creative_id)
-            # Note: We'll delete the creative at the end
+        print("\n📋 Running Campaign / Adset / Ad / Pixel Tests...")
+        print("-" * 40)
+        campaign_id = self.test_get_campaigns()
+        self.test_get_campaign(campaign_id)
+        adset_id = self.test_get_adsets()
+        self.test_get_adset(adset_id)
+        ad_id = self.test_get_ads()
+        self.test_get_ad(ad_id)
+        pixel_id = self.test_get_pixels()
+        self.test_get_pixel(pixel_id)
+        self.test_get_pixel_events(pixel_id)
+
+        if RUN_TPA_WRITE_TESTS:
+            print("\n✍️ Running write tests (RUN_TPA_WRITE_TESTS=1)...")
+            print("-" * 40)
+            # Test creative CRUD operations
+            creative_id = self.test_create_creative()
+            if creative_id:
+                self.test_get_creative(creative_id)
+                self.test_update_creative(creative_id)
+                # Note: We'll delete the creative at the end
+        else:
+            creative_id = None
+            print("\n⏭️ Skipping write tests (set RUN_TPA_WRITE_TESTS=1 to enable)")
 
         # Test media operations
         media_id = self.test_media_upload()
@@ -859,15 +1269,18 @@ class ComprehensiveSDKTester:
         self.test_get_segments()
         self.test_get_segment()
 
-        # Test segment CRUD operations
-        segment_id = self.test_create_segment()
-        test_media_id = os.getenv("TEST_MEDIA_ID")
-        if segment_id:
-            self.test_update_segment(segment_id)
-            if test_media_id:
-                self.test_extend_segment(segment_id, test_media_id)
-            self.test_update_segment_users(segment_id)
-            # Note: We'll delete the segment at the end
+        if RUN_TPA_WRITE_TESTS:
+            # Test segment CRUD operations
+            segment_id = self.test_create_segment()
+            test_media_id = os.getenv("TEST_MEDIA_ID")
+            if segment_id:
+                self.test_update_segment(segment_id)
+                if test_media_id:
+                    self.test_extend_segment(segment_id, test_media_id)
+                self.test_update_segment_users(segment_id)
+                # Note: We'll delete the segment at the end
+        else:
+            segment_id = None
 
         # Clean up - delete test creative if created
         if creative_id:

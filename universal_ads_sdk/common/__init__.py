@@ -6,6 +6,8 @@ from .exceptions import UniversalAdsError, AuthenticationError, APIError
 from .types import (
     ReportTimeAggregation,
     AttributionWindowEnum,
+    AdAccountAuthorizationStatus,
+    PerformanceReportField,
     SegmentStatus,
     SegmentType,
     ScheduledReportStatus,
@@ -19,6 +21,8 @@ __all__ = [
     "APIError",
     "ReportTimeAggregation",
     "AttributionWindowEnum",
+    "AdAccountAuthorizationStatus",
+    "PerformanceReportField",
     "SegmentStatus",
     "SegmentType",
     "ScheduledReportStatus",

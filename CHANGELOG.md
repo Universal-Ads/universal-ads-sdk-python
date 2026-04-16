@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-04-16
+
+### Added
+- Added campaign resource helpers: `get_campaigns()`, `get_campaign()`, `create_campaign()`, and `update_campaign()`
+- Added ad set resource helpers: `get_adsets()`, `get_adset()`, `create_adset()`, and `update_adset()`
+- Added ad resource helpers: `get_ads()`, `get_ad()`, `create_ad()`, and `update_ad()`
+- Added pixel resource helpers: `get_pixels()`, `get_pixel()`, and `get_pixel_events()`
+
+### Changed
+- Extended `get_adaccounts()` to support repeated `organization_id` and `authorization_status` filters
+- Extended scheduled report support with `attribution_window` and `time_aggregation="total"`
+- Added `AdAccountAuthorizationStatus` and `PerformanceReportField` enums to `common.types`
+
+### Documentation
+- Updated `README.md` with campaign/ad set/ad/pixel examples and ad account filter examples
+- Added UAE-1324 release notes coverage for the new TPA parity SDK surface
+
 ## [1.2.0] - 2025-01-XX
 
 ### Added
@@ -85,6 +102,7 @@ Initial stable release with basic functionality for:
 - Basic reporting
 - Segment management
 
-[Unreleased]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/universal-ads/universal-ads-sdk-python/releases/tag/v1.1.0
