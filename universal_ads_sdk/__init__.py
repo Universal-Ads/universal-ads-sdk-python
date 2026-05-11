@@ -14,14 +14,14 @@ from .common import (
     AttributionWindowEnum,
     AdAccountAuthorizationStatus,
     PerformanceReportField,
-    SegmentStatus,
-    SegmentType,
+    AudienceStatus,
+    AudienceType,
     ScheduledReportStatus,
     EntityLevel,
     TimeAggregation,
 )
 
-__version__ = "1.3.0"
+__version__ = "2.0.0"
 __all__ = [
     "UniversalAdsClient",
     "CampaignEndpoint",
@@ -35,8 +35,8 @@ __all__ = [
     "AttributionWindowEnum",
     "AdAccountAuthorizationStatus",
     "PerformanceReportField",
-    "SegmentStatus",
-    "SegmentType",
+    "AudienceStatus",
+    "AudienceType",
     "ScheduledReportStatus",
     "EntityLevel",
     "TimeAggregation",
