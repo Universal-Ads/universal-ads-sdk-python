@@ -42,8 +42,8 @@ class PerformanceReportField(str, Enum):
     CPC = "cpc"
 
 
-class SegmentStatus(str, Enum):
-    """Status values for custom segments."""
+class AudienceStatus(str, Enum):
+    """Status values for custom audiences."""
 
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
@@ -54,8 +54,8 @@ class SegmentStatus(str, Enum):
     EXPIRED = "EXPIRED"
 
 
-class SegmentType(str, Enum):
-    """Type values for custom segments."""
+class AudienceType(str, Enum):
+    """Type values for custom audiences."""
 
     EMAIL = "email"
     CTV = "ctv"
