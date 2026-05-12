@@ -123,8 +123,8 @@ client.update_segment_users(
 # Get campaign performance report
 report = client.get_campaign_report(
     adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
-    start_date="2024-01-01",
-    end_date="2024-01-31",
+    start_date="2024-01-01T00:00:00",
+    end_date="2024-01-31T23:59:59",
     date_aggregation="DAY",
     attribution_window="7_day"
 )
@@ -244,8 +244,8 @@ media = client.verify_media("media-id")
 ```python
 report = client.get_campaign_report(
     adaccount_id="account-id",      # Required
-    start_date="2024-01-01",        # Optional
-    end_date="2024-01-31",          # Optional
+    start_date="2024-01-01T00:00:00",  # Optional (YYYY-MM-DDTHH:MM:SS)
+    end_date="2024-01-31T23:59:59",    # Optional (YYYY-MM-DDTHH:MM:SS)
     campaign_ids=["id1", "id2"],   # Optional
     adset_ids=["id1", "id2"],       # Optional
     ad_ids=["id1", "id2"],          # Optional
@@ -260,8 +260,8 @@ report = client.get_campaign_report(
 ```python
 report = client.get_adset_report(
     adaccount_id="account-id",      # Required
-    start_date="2024-01-01",        # Optional
-    end_date="2024-01-31",          # Optional
+    start_date="2024-01-01T00:00:00",  # Optional (YYYY-MM-DDTHH:MM:SS)
+    end_date="2024-01-31T23:59:59",    # Optional (YYYY-MM-DDTHH:MM:SS)
     campaign_ids=["id1", "id2"],   # Optional
     adset_ids=["id1", "id2"],       # Optional
     ad_ids=["id1", "id2"],          # Optional
@@ -276,8 +276,8 @@ report = client.get_adset_report(
 ```python
 report = client.get_ad_report(
     adaccount_id="account-id",      # Required
-    start_date="2024-01-01",        # Optional
-    end_date="2024-01-31",          # Optional
+    start_date="2024-01-01T00:00:00",  # Optional (YYYY-MM-DDTHH:MM:SS)
+    end_date="2024-01-31T23:59:59",    # Optional (YYYY-MM-DDTHH:MM:SS)
     campaign_ids=["id1", "id2"],   # Optional
     adset_ids=["id1", "id2"],       # Optional
     ad_ids=["id1", "id2"],          # Optional
@@ -315,10 +315,15 @@ report_status = client.get_scheduled_report("scheduled-report-id")
 #### Get All Campaigns
 ```python
 campaigns = client.get_campaigns(
-    adaccount_id="account-id",  # Optional: filter by account
-    limit=50,
-    offset=0,
-    sort="created_at_desc"
+    adaccount_id="account-id",             # Required
+    campaign_ids=["campaign-1"],           # Optional: filter by campaign IDs
+    name="Spring Campaign",                # Optional
+    status="active",                       # Optional
+    campaign_type="performance",           # Optional: performance, content_select
+    include_archived=False,                # Optional
+    limit=50,                              # Optional
+    offset=0,                              # Optional
+    sort="id_asc"                          # Optional
 )
 ```
 
@@ -327,7 +332,7 @@ campaigns = client.get_campaigns(
 campaign = client.create_campaign(
     adaccount_id="account-id",
     name="Spring Campaign",
-    objective="traffic"
+    objective="web_conversions"
 )
 
 updated = client.update_campaign(campaign["id"], name="Spring Campaign v2")
@@ -338,10 +343,15 @@ updated = client.update_campaign(campaign["id"], name="Spring Campaign v2")
 #### Get All Ad Sets
 ```python
 adsets = client.get_adsets(
-    adaccount_id="account-id",
-    campaign_id="campaign-id",
-    limit=50,
-    offset=0
+    adaccount_id="account-id",             # Required
+    campaign_ids=["campaign-id"],          # Optional
+    adset_ids=["adset-id"],                # Optional
+    name="Adults 25-44",                   # Optional
+    status=["active", "paused"],           # Optional
+    include_archived=False,                # Optional
+    limit=50,                              # Optional
+    offset=0,                              # Optional
+    sort="id_asc"                          # Optional
 )
 ```
 
@@ -361,11 +371,14 @@ updated = client.update_adset(adset["id"], name="Adults 25-54")
 #### Get All Ads
 ```python
 ads = client.get_ads(
-    adaccount_id="account-id",
-    campaign_id="campaign-id",
-    adset_id="adset-id",
-    limit=50,
-    offset=0
+    adaccount_id="account-id",             # Required
+    campaign_ids=["campaign-id"],          # Optional
+    adset_ids=["adset-id"],                # Optional
+    ad_ids=["ad-id"],                      # Optional
+    status=["active", "paused"],           # Optional
+    include_archived=False,                # Optional
+    limit=50,                              # Optional
+    offset=0                               # Optional
 )
 ```
 
@@ -385,7 +398,11 @@ updated = client.update_ad(ad["id"], name="Homepage Hero Ad v2")
 
 #### Get Pixels
 ```python
-pixels = client.get_pixels(adaccount_id="account-id", limit=50, offset=0)
+pixels = client.get_pixels(
+    adaccount_id="account-id",  # Required
+    limit=50,                   # Optional
+    offset=0                    # Optional
+)
 pixel = client.get_pixel("pixel-id")
 events = client.get_pixel_events("pixel-id", limit=100, offset=0)
 ```

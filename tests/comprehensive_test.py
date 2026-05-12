@@ -366,8 +366,8 @@ class ComprehensiveSDKTester:
         try:
             adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
             # Use recent dates for testing
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            end_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
 
             response = self.client.get_campaign_report(
                 adaccount_id=adaccount_id,
@@ -417,8 +417,8 @@ class ComprehensiveSDKTester:
 
         try:
             adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            end_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
 
             response = self.client.get_adset_report(
                 adaccount_id=adaccount_id,
@@ -466,8 +466,8 @@ class ComprehensiveSDKTester:
 
         try:
             adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            end_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
 
             response = self.client.get_ad_report(
                 adaccount_id=adaccount_id,

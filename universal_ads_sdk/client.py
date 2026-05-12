@@ -496,7 +496,12 @@ class UniversalAdsClient:
 
     def get_campaigns(
         self,
-        adaccount_id: Optional[str] = None,
+        adaccount_id: str,
+        campaign_ids: Optional[list] = None,
+        name: Optional[str] = None,
+        status: Optional[str] = None,
+        campaign_type: Optional[str] = None,
+        include_archived: Optional[bool] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         sort: Optional[str] = None,
@@ -505,6 +510,11 @@ class UniversalAdsClient:
         """Get a list of campaigns. Delegates to campaign endpoint."""
         return self.campaign.get_campaigns(
             adaccount_id=adaccount_id,
+            campaign_ids=campaign_ids,
+            name=name,
+            status=status,
+            campaign_type=campaign_type,
+            include_archived=include_archived,
             limit=limit,
             offset=offset,
             sort=sort,
@@ -528,8 +538,12 @@ class UniversalAdsClient:
 
     def get_adsets(
         self,
-        adaccount_id: Optional[str] = None,
-        campaign_id: Optional[str] = None,
+        adaccount_id: str,
+        campaign_ids: Optional[list] = None,
+        adset_ids: Optional[list] = None,
+        name: Optional[str] = None,
+        status: Optional[list] = None,
+        include_archived: Optional[bool] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         sort: Optional[str] = None,
@@ -538,7 +552,11 @@ class UniversalAdsClient:
         """Get a list of ad sets. Delegates to adset endpoint."""
         return self.adset.get_adsets(
             adaccount_id=adaccount_id,
-            campaign_id=campaign_id,
+            campaign_ids=campaign_ids,
+            adset_ids=adset_ids,
+            name=name,
+            status=status,
+            include_archived=include_archived,
             limit=limit,
             offset=offset,
             sort=sort,
@@ -562,22 +580,26 @@ class UniversalAdsClient:
 
     def get_ads(
         self,
-        adaccount_id: Optional[str] = None,
-        campaign_id: Optional[str] = None,
-        adset_id: Optional[str] = None,
+        adaccount_id: str,
+        campaign_ids: Optional[list] = None,
+        adset_ids: Optional[list] = None,
+        ad_ids: Optional[list] = None,
+        status: Optional[list] = None,
+        include_archived: Optional[bool] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        sort: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Any]:
         """Get a list of ads. Delegates to ad endpoint."""
         return self.ad.get_ads(
             adaccount_id=adaccount_id,
-            campaign_id=campaign_id,
-            adset_id=adset_id,
+            campaign_ids=campaign_ids,
+            adset_ids=adset_ids,
+            ad_ids=ad_ids,
+            status=status,
+            include_archived=include_archived,
             limit=limit,
             offset=offset,
-            sort=sort,
             **kwargs,
         )
 
@@ -598,19 +620,15 @@ class UniversalAdsClient:
 
     def get_pixels(
         self,
-        adaccount_id: Optional[str] = None,
+        adaccount_id: str,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        sort: Optional[str] = None,
-        **kwargs,
     ) -> Dict[str, Any]:
         """Get a list of pixels. Delegates to pixel endpoint."""
         return self.pixel.get_pixels(
             adaccount_id=adaccount_id,
             limit=limit,
             offset=offset,
-            sort=sort,
-            **kwargs,
         )
 
     def get_pixel(self, pixel_id: str) -> Dict[str, Any]:

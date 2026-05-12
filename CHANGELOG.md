@@ -5,7 +5,33 @@ All notable changes to the Universal Ads SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.0] - 2026-05-11
+
+### Changed
+- Updated SDK authentication metadata so `x-sdk-version` is sourced from package versioning and now reports `2.1.0`.
+- Updated campaign objective support to use `web_conversions` for conversion campaigns and reject legacy `conversions`.
+- Aligned campaign/adset/ad/pixel list endpoints with first-class list filters (`campaign_ids`, `adset_ids`, `ad_ids`, `status`, `campaign_type`, `include_archived`) and narrowing pixel list params to API-supported fields.
+- Updated SDK list wrappers and request serialization to preserve explicit values such as `offset=0`/`limit=0` by using `is not None` checks.
+- Aligned reporting endpoints with backend datetime requirements by enforcing `YYYY-MM-DDTHH:MM:SS` for report date fields.
+
+### Breaking Changes
+- `adaccount_id` is now required for `get_campaigns()`, `get_adsets()`, `get_ads()`, and `get_pixels()`.
+- Replaced legacy single-ID list filters (`campaign_id`, `adset_id`) with list-based filters (`campaign_ids`, `adset_ids`) on adset/ad list methods; ad list no longer advertises `sort` as a first-class filter parameter.
+
+## [2.0.0] - 2026-05-11
+
+### Removed
+- Removed segment endpoint surface from the SDK (`create_segment`, `get_segments`, `get_segment`, `update_segment`, `extend_segment`, `update_segment_users`, `delete_segment`)
+- Removed `SegmentEndpoint`, `SegmentStatus`, and `SegmentType` exports
+
+### Added
+- Added audience endpoint surface matching latest API spec (`create_audience`, `get_audiences`, `get_audience`, `update_audience`, `update_audience_users`, `delete_audience`)
+- Added `AudienceEndpoint`, `AudienceStatus`, and `AudienceType` exports
+
+### Changed
+- Migrated endpoint paths from deprecated `/segment` routes to `/audience` routes
+- Updated `update_audience_users()` to support both direct user lists and media-based updates (`media_id`)
+- Updated docs, examples, and comprehensive tests to audience terminology and API names
 
 ## [1.3.0] - 2026-04-16
 
@@ -22,7 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 - Updated `README.md` with campaign/ad set/ad/pixel examples and ad account filter examples
-- Added UAE-1324 release notes coverage for the new TPA parity SDK surface
 
 ## [1.2.0] - 2025-01-XX
 
@@ -102,7 +127,8 @@ Initial stable release with basic functionality for:
 - Basic reporting
 - Segment management
 
-[Unreleased]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.3.0...HEAD
+[2.1.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.3.0...v2.0.0
 [1.3.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/universal-ads/universal-ads-sdk-python/releases/tag/v1.1.0

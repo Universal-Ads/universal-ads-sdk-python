@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, utils
+from . import __version__
 
 
 class Authenticator:
@@ -108,7 +109,7 @@ class Authenticator:
         headers = {
             "x-api-key": self.api_key,
             "x-timestamp": timestamp,
-            "x-sdk-version": "1.2.0",  # SDK identification flag
+            "x-sdk-version": __version__,  # SDK identification flag
             "x-sdk-source": "universal-ads-python-sdk",  # SDK identification flag
         }
 

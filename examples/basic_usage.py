@@ -38,8 +38,8 @@ def main():
         # Example 4: Get campaign report
         print("\nFetching campaign report...")
         report = client.get_campaign_report(
-            start_date="2024-01-01",
-            end_date="2024-01-31",
+            start_date="2024-01-01T00:00:00",
+            end_date="2024-01-31T23:59:59",
             adaccount_id="3d49e08c-465d-4673-a445-d4ba3575f032",
         )
         print(f"Report contains {len(report.get('data', []))} campaigns")
