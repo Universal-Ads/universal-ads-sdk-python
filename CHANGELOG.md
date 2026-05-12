@@ -17,7 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Breaking Changes
 - `adaccount_id` is now required for `get_campaigns()`, `get_adsets()`, `get_ads()`, and `get_pixels()`.
 - Replaced legacy single-ID list filters (`campaign_id`, `adset_id`) with list-based filters (`campaign_ids`, `adset_ids`) on adset/ad list methods; ad list no longer advertises `sort` as a first-class filter parameter.
-
 ## [2.0.0] - 2026-05-11
 
 ### Removed

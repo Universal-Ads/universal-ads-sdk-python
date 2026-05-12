@@ -14,7 +14,7 @@ from .endpoints import (
     CreativeEndpoint,
     MediaEndpoint,
     ReportEndpoint,
-    SegmentEndpoint,
+    AudienceEndpoint,
     MeEndpoint,
     CampaignEndpoint,
     AdsetEndpoint,
@@ -32,6 +32,7 @@ class UniversalAdsClient:
     """
 
     BASE_URL = "https://api.universalads.com/v1"
+    _RESERVED_AUTH_HEADERS = {"x-api-key", "x-timestamp", "x-signature"}
 
     def __init__(
         self,
@@ -40,6 +41,7 @@ class UniversalAdsClient:
         base_url: Optional[str] = None,
         timeout: int = 30,
         max_retries: int = 3,
+        headers: Optional[Dict[str, str]] = None,
     ):
         """
         Initialize the Universal Ads client.
@@ -50,9 +52,11 @@ class UniversalAdsClient:
             base_url: Base URL for the API (defaults to production)
             timeout: Request timeout in seconds
             max_retries: Maximum number of retries for failed requests
+            headers: Optional custom headers to include in every SDK request
         """
         self.base_url = base_url or self.BASE_URL
         self.timeout = timeout
+        self._custom_headers = self._sanitize_custom_headers(headers)
 
         # Initialize authenticator
         try:
@@ -75,12 +79,29 @@ class UniversalAdsClient:
         self.creative = CreativeEndpoint(self._make_request)
         self.media = MediaEndpoint(self._make_request)
         self.report = ReportEndpoint(self._make_request)
-        self.segment = SegmentEndpoint(self._make_request)
+        self.audience = AudienceEndpoint(self._make_request)
         self.me = MeEndpoint(self._make_request)
         self.campaign = CampaignEndpoint(self._make_request)
         self.adset = AdsetEndpoint(self._make_request)
         self.ad = AdEndpoint(self._make_request)
         self.pixel = PixelEndpoint(self._make_request)
+
+    def _sanitize_custom_headers(
+        self, headers: Optional[Dict[str, str]]
+    ) -> Dict[str, str]:
+        """Validate and normalize user-provided custom headers."""
+        if not headers:
+            return {}
+
+        sanitized_headers: Dict[str, str] = {}
+        for key, value in headers.items():
+            if key.lower() in self._RESERVED_AUTH_HEADERS:
+                raise ValueError(
+                    f"Custom header '{key}' cannot override SDK authentication headers."
+                )
+            sanitized_headers[key] = str(value)
+
+        return sanitized_headers
 
     def _make_request(
         self,
@@ -123,6 +144,8 @@ class UniversalAdsClient:
 
         # Get authentication headers (using URL with query params)
         headers = self.authenticator.get_auth_headers(method, url, body_str)
+        if self._custom_headers:
+            headers.update(self._custom_headers)
         headers["Content-Type"] = "application/json"
 
         try:
@@ -373,10 +396,10 @@ class UniversalAdsClient:
         """Get information about a scheduled report. Delegates to report endpoint."""
         return self.report.get_scheduled_report(scheduled_report_id)
 
-    # Segment Management Methods
-    # These methods delegate to the segment endpoint for backward compatibility
+    # Audience Management Methods
+    # These methods delegate to the audience endpoint
 
-    def create_segment(
+    def create_audience(
         self,
         adaccount_id: str,
         name: str,
@@ -384,20 +407,18 @@ class UniversalAdsClient:
         media_id: Optional[str] = None,
         users: Optional[list] = None,
         description: Optional[str] = None,
-        large_files: bool = False,
     ) -> Dict[str, Any]:
-        """Create a new custom segment. Delegates to segment endpoint."""
-        return self.segment.create_segment(
+        """Create a new custom audience. Delegates to audience endpoint."""
+        return self.audience.create_audience(
             adaccount_id=adaccount_id,
             name=name,
             segment_type=segment_type,
             media_id=media_id,
             users=users,
             description=description,
-            large_files=large_files,
         )
 
-    def get_segments(
+    def get_audiences(
         self,
         adaccount_id: str,
         name: Optional[str] = None,
@@ -410,8 +431,8 @@ class UniversalAdsClient:
         offset: Optional[int] = None,
         sort: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Get a list of custom segments. Delegates to segment endpoint."""
-        return self.segment.get_segments(
+        """Get a list of custom audiences. Delegates to audience endpoint."""
+        return self.audience.get_audiences(
             adaccount_id=adaccount_id,
             name=name,
             description=description,
@@ -424,45 +445,38 @@ class UniversalAdsClient:
             sort=sort,
         )
 
-    def get_segment(self, segment_id: str) -> Dict[str, Any]:
-        """Get a specific segment by ID. Delegates to segment endpoint."""
-        return self.segment.get_segment(segment_id)
+    def get_audience(self, audience_id: str) -> Dict[str, Any]:
+        """Get a specific audience by ID. Delegates to audience endpoint."""
+        return self.audience.get_audience(audience_id)
 
-    def update_segment(
+    def update_audience(
         self,
-        segment_id: str,
+        audience_id: str,
         name: str,
-        description: Optional[str] = None,
+        description: str,
     ) -> Dict[str, Any]:
-        """Update an existing segment. Delegates to segment endpoint."""
-        return self.segment.update_segment(
-            segment_id=segment_id, name=name, description=description
+        """Update an existing audience. Delegates to audience endpoint."""
+        return self.audience.update_audience(
+            audience_id=audience_id, name=name, description=description
         )
 
-    def delete_segment(self, segment_id: str) -> Dict[str, Any]:
-        """Delete a segment. Delegates to segment endpoint."""
-        return self.segment.delete_segment(segment_id)
+    def delete_audience(self, audience_id: str) -> Dict[str, Any]:
+        """Delete an audience. Delegates to audience endpoint."""
+        return self.audience.delete_audience(audience_id)
 
-    def extend_segment(
+    def update_audience_users(
         self,
-        segment_id: str,
-        media_id: str,
-        large_files: bool = False,
-    ) -> Dict[str, Any]:
-        """Extend a segment with additional media. Delegates to segment endpoint."""
-        return self.segment.extend_segment(
-            segment_id=segment_id, media_id=media_id, large_files=large_files
-        )
-
-    def update_segment_users(
-        self,
-        segment_id: str,
-        users: list,
+        audience_id: str,
+        users: Optional[list] = None,
+        media_id: Optional[str] = None,
         remove: bool = False,
     ) -> Dict[str, Any]:
-        """Add or remove users from a segment. Delegates to segment endpoint."""
-        return self.segment.update_segment_users(
-            segment_id=segment_id, users=users, remove=remove
+        """Add or remove users from an audience. Delegates to audience endpoint."""
+        return self.audience.update_audience_users(
+            audience_id=audience_id,
+            users=users,
+            media_id=media_id,
+            remove=remove,
         )
 
     # Me Endpoints
