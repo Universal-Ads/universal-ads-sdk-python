@@ -9,9 +9,24 @@ from ._base import BaseEndpoint
 class CampaignEndpoint(BaseEndpoint):
     """Endpoint for managing campaigns."""
 
+    @staticmethod
+    def _validate_objective(data: Dict[str, Any]) -> None:
+        """Validate campaign objective values before request submission."""
+        objective = data.get("objective")
+        if objective == "conversions":
+            raise ValueError(
+                "Campaign objective 'conversions' is no longer supported. "
+                "Use 'web_conversions' instead."
+            )
+
     def get_campaigns(
         self,
-        adaccount_id: Optional[str] = None,
+        adaccount_id: str,
+        campaign_ids: Optional[list] = None,
+        name: Optional[str] = None,
+        status: Optional[str] = None,
+        campaign_type: Optional[str] = None,
+        include_archived: Optional[bool] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         sort: Optional[str] = None,
@@ -30,14 +45,22 @@ class CampaignEndpoint(BaseEndpoint):
         Returns:
             Dictionary containing campaign list data
         """
-        params = {}
-        if adaccount_id:
-            params["adaccount_id"] = adaccount_id
-        if limit:
+        params: Dict[str, Any] = {"adaccount_id": adaccount_id}
+        if campaign_ids is not None:
+            params["campaign_ids"] = campaign_ids
+        if name is not None:
+            params["name"] = name
+        if status is not None:
+            params["status"] = status
+        if campaign_type is not None:
+            params["campaign_type"] = campaign_type
+        if include_archived is not None:
+            params["include_archived"] = include_archived
+        if limit is not None:
             params["limit"] = limit
-        if offset:
+        if offset is not None:
             params["offset"] = offset
-        if sort:
+        if sort is not None:
             params["sort"] = sort
         params.update(kwargs)
 
@@ -57,6 +80,7 @@ class CampaignEndpoint(BaseEndpoint):
         Returns:
             Dictionary containing created campaign data
         """
+        self._validate_objective(data)
         return self._make_request("POST", "/campaign", data=data)
 
     def update_campaign(self, campaign_id: str, **data) -> Dict[str, Any]:
@@ -70,4 +94,5 @@ class CampaignEndpoint(BaseEndpoint):
         Returns:
             Dictionary containing updated campaign data
         """
+        self._validate_objective(data)
         return self._make_request("PUT", f"/campaign/{campaign_id}", data=data)

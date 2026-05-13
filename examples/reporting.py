@@ -17,8 +17,8 @@ def get_last_month_reports(client, adaccount_id):
     last_day_last_month = first_day_this_month - timedelta(days=1)
     first_day_last_month = last_day_last_month.replace(day=1)
 
-    start_date = first_day_last_month.strftime("%Y-%m-%d")
-    end_date = last_day_last_month.strftime("%Y-%m-%d")
+    start_date = first_day_last_month.strftime("%Y-%m-%dT00:00:00")
+    end_date = last_day_last_month.strftime("%Y-%m-%dT23:59:59")
 
     print(f"Getting reports for {start_date} to {end_date}")
 
@@ -140,8 +140,10 @@ def main():
 
             if campaign_id:
                 # Get report for the last 7 days
-                end_date = datetime.now().strftime("%Y-%m-%d")
-                start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+                end_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                start_date = (datetime.now() - timedelta(days=7)).strftime(
+                    "%Y-%m-%dT%H:%M:%S"
+                )
 
                 get_specific_campaign_report(client, campaign_id, start_date, end_date)
 

@@ -11,23 +11,16 @@ class PixelEndpoint(BaseEndpoint):
 
     def get_pixels(
         self,
-        adaccount_id: Optional[str] = None,
+        adaccount_id: str,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        sort: Optional[str] = None,
-        **kwargs,
     ) -> Dict[str, Any]:
         """Get a list of pixels."""
-        params = {}
-        if adaccount_id:
-            params["adaccount_id"] = adaccount_id
-        if limit:
+        params: Dict[str, Any] = {"adaccount_id": adaccount_id}
+        if limit is not None:
             params["limit"] = limit
-        if offset:
+        if offset is not None:
             params["offset"] = offset
-        if sort:
-            params["sort"] = sort
-        params.update(kwargs)
 
         return self._make_request("GET", "/pixels", params=params)
 
@@ -44,9 +37,9 @@ class PixelEndpoint(BaseEndpoint):
     ) -> Dict[str, Any]:
         """Get events associated with a pixel."""
         params = {}
-        if limit:
+        if limit is not None:
             params["limit"] = limit
-        if offset:
+        if offset is not None:
             params["offset"] = offset
         params.update(kwargs)
 

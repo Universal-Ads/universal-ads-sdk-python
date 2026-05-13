@@ -11,28 +11,32 @@ class AdEndpoint(BaseEndpoint):
 
     def get_ads(
         self,
-        adaccount_id: Optional[str] = None,
-        campaign_id: Optional[str] = None,
-        adset_id: Optional[str] = None,
+        adaccount_id: str,
+        campaign_ids: Optional[list] = None,
+        adset_ids: Optional[list] = None,
+        ad_ids: Optional[list] = None,
+        status: Optional[list] = None,
+        include_archived: Optional[bool] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        sort: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Any]:
         """Get a list of ads."""
-        params = {}
-        if adaccount_id:
-            params["adaccount_id"] = adaccount_id
-        if campaign_id:
-            params["campaign_id"] = campaign_id
-        if adset_id:
-            params["adset_id"] = adset_id
-        if limit:
+        params: Dict[str, Any] = {"adaccount_id": adaccount_id}
+        if campaign_ids is not None:
+            params["campaign_ids"] = campaign_ids
+        if adset_ids is not None:
+            params["adset_ids"] = adset_ids
+        if ad_ids is not None:
+            params["ad_ids"] = ad_ids
+        if status is not None:
+            params["status"] = status
+        if include_archived is not None:
+            params["include_archived"] = include_archived
+        if limit is not None:
             params["limit"] = limit
-        if offset:
+        if offset is not None:
             params["offset"] = offset
-        if sort:
-            params["sort"] = sort
         params.update(kwargs)
 
         return self._make_request("GET", "/ad", params=params)

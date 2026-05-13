@@ -161,6 +161,58 @@ class ComprehensiveSDKTester:
             self.log_test("Get Creatives", False, f"Unexpected error: {e}")
             return False
 
+    def test_sdk_contract_validation(self) -> bool:
+        """Test local SDK contract validation without API dependency."""
+        if not self.client:
+            self.log_test("SDK Contract Validation", False, "Client not initialized")
+            return False
+
+        try:
+            missing_adaccount_methods = [
+                ("get_campaigns", lambda: self.client.get_campaigns()),
+                ("get_adsets", lambda: self.client.get_adsets()),
+                ("get_ads", lambda: self.client.get_ads()),
+                ("get_pixels", lambda: self.client.get_pixels()),
+            ]
+
+            for method_name, method_call in missing_adaccount_methods:
+                try:
+                    method_call()
+                    self.log_test(
+                        "SDK Contract Validation",
+                        False,
+                        f"{method_name} should require adaccount_id",
+                    )
+                    return False
+                except TypeError:
+                    pass
+
+            test_adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
+            try:
+                self.client.get_campaign_report(
+                    adaccount_id=test_adaccount_id,
+                    start_date="2026-01-01",
+                    end_date="2026-01-31T23:59:59",
+                )
+                self.log_test(
+                    "SDK Contract Validation",
+                    False,
+                    "Report endpoints should reject non-datetime start_date format",
+                )
+                return False
+            except ValueError:
+                pass
+
+            self.log_test(
+                "SDK Contract Validation",
+                True,
+                "Required adaccount_id and report datetime format checks are enforced",
+            )
+            return True
+        except Exception as e:
+            self.log_test("SDK Contract Validation", False, f"Unexpected error: {e}")
+            return False
+
     def test_create_creative(self) -> Optional[str]:
         """Test creating a creative and return the creative ID."""
         if not self.client:
@@ -366,8 +418,8 @@ class ComprehensiveSDKTester:
         try:
             adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
             # Use recent dates for testing
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            end_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
 
             response = self.client.get_campaign_report(
                 adaccount_id=adaccount_id,
@@ -417,8 +469,8 @@ class ComprehensiveSDKTester:
 
         try:
             adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            end_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
 
             response = self.client.get_adset_report(
                 adaccount_id=adaccount_id,
@@ -466,8 +518,8 @@ class ComprehensiveSDKTester:
 
         try:
             adaccount_id = TEST_ADACCOUNT_ID or "00000000-0000-0000-0000-000000000000"
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            end_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
 
             response = self.client.get_ad_report(
                 adaccount_id=adaccount_id,
@@ -1226,6 +1278,9 @@ class ComprehensiveSDKTester:
         if not self.test_authentication():
             print("\n❌ Cannot proceed - Authentication failed")
             return self.test_results
+
+        # Test local SDK parameter contracts (no API dependency)
+        self.test_sdk_contract_validation()
 
         print("\n📋 Running API Endpoint Tests...")
         print("-" * 40)

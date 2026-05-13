@@ -2,6 +2,7 @@
 Reporting endpoints.
 """
 
+from datetime import datetime
 from typing import Dict, Any, Optional, List, Union
 from ._base import BaseEndpoint
 from ..common.types import (
@@ -14,6 +15,21 @@ from ..common.types import (
 
 class ReportEndpoint(BaseEndpoint):
     """Endpoint for accessing reports."""
+
+    @staticmethod
+    def _validate_report_datetime(value: Optional[str], field_name: str) -> None:
+        """Validate report datetime format: YYYY-MM-DDTHH:MM:SS."""
+        if value is None:
+            return
+        try:
+            parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+        except ValueError as exc:
+            raise ValueError(
+                f"{field_name} must be in YYYY-MM-DDTHH:MM:SS format"
+            ) from exc
+
+        if parsed.strftime("%Y-%m-%dT%H:%M:%S") != value:
+            raise ValueError(f"{field_name} must be in YYYY-MM-DDTHH:MM:SS format")
 
     def get_campaign_report(
         self,
@@ -33,8 +49,8 @@ class ReportEndpoint(BaseEndpoint):
 
         Args:
             adaccount_id: Ad account ID (required)
-            start_date: Start date in YYYY-MM-DD format (optional)
-            end_date: End date in YYYY-MM-DD format (optional)
+            start_date: Start datetime in YYYY-MM-DDTHH:MM:SS format (optional)
+            end_date: End datetime in YYYY-MM-DDTHH:MM:SS format (optional)
             campaign_ids: List of campaign IDs to include
             adset_ids: List of adset IDs to include
             ad_ids: List of ad IDs to include
@@ -46,6 +62,8 @@ class ReportEndpoint(BaseEndpoint):
         Returns:
             Dictionary containing campaign report data
         """
+        self._validate_report_datetime(start_date, "start_date")
+        self._validate_report_datetime(end_date, "end_date")
         params = {"adaccount_id": adaccount_id}
 
         if start_date:
@@ -95,8 +113,8 @@ class ReportEndpoint(BaseEndpoint):
 
         Args:
             adaccount_id: Ad account ID (required)
-            start_date: Start date in YYYY-MM-DD format (optional)
-            end_date: End date in YYYY-MM-DD format (optional)
+            start_date: Start datetime in YYYY-MM-DDTHH:MM:SS format (optional)
+            end_date: End datetime in YYYY-MM-DDTHH:MM:SS format (optional)
             campaign_ids: List of campaign IDs to include
             adset_ids: List of adset IDs to include
             ad_ids: List of ad IDs to include
@@ -108,6 +126,8 @@ class ReportEndpoint(BaseEndpoint):
         Returns:
             Dictionary containing adset report data
         """
+        self._validate_report_datetime(start_date, "start_date")
+        self._validate_report_datetime(end_date, "end_date")
         params = {"adaccount_id": adaccount_id}
 
         if start_date:
@@ -157,8 +177,8 @@ class ReportEndpoint(BaseEndpoint):
 
         Args:
             adaccount_id: Ad account ID (required)
-            start_date: Start date in YYYY-MM-DD format (optional)
-            end_date: End date in YYYY-MM-DD format (optional)
+            start_date: Start datetime in YYYY-MM-DDTHH:MM:SS format (optional)
+            end_date: End datetime in YYYY-MM-DDTHH:MM:SS format (optional)
             campaign_ids: List of campaign IDs to include
             adset_ids: List of adset IDs to include
             ad_ids: List of ad IDs to include
@@ -170,6 +190,8 @@ class ReportEndpoint(BaseEndpoint):
         Returns:
             Dictionary containing ad report data
         """
+        self._validate_report_datetime(start_date, "start_date")
+        self._validate_report_datetime(end_date, "end_date")
         params = {"adaccount_id": adaccount_id}
 
         if start_date:
@@ -234,6 +256,8 @@ class ReportEndpoint(BaseEndpoint):
         Returns:
             Dictionary containing scheduled report information
         """
+        self._validate_report_datetime(start_date, "start_date")
+        self._validate_report_datetime(end_date, "end_date")
         data = {
             "start_date": start_date,
             "end_date": end_date,
