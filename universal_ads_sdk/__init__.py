@@ -4,7 +4,7 @@ Universal Ads SDK
 A Python SDK for interacting with the Universal Ads Third Party API.
 """
 
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 from .client import UniversalAdsClient
 from .endpoints import CampaignEndpoint, AdsetEndpoint, AdEndpoint, PixelEndpoint
@@ -22,6 +22,7 @@ from .common import (
     EntityLevel,
     TimeAggregation,
 )
+
 __all__ = [
     "UniversalAdsClient",
     "CampaignEndpoint",
