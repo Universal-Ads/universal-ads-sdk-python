@@ -2,7 +2,8 @@
 Campaign management endpoints.
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from ._base import BaseEndpoint
 
 
@@ -96,3 +97,13 @@ class CampaignEndpoint(BaseEndpoint):
         """
         self._validate_objective(data)
         return self._make_request("PUT", f"/campaign/{campaign_id}", data=data)
+
+    def archive_campaign(self, campaign_id: str) -> Dict[str, Any]:
+        """Start async campaign archive (cascade to ad sets and ads). No JSON body."""
+        return self._make_request("POST", f"/campaign/{campaign_id}/archive", data=None)
+
+    def unarchive_campaign(self, campaign_id: str) -> Dict[str, Any]:
+        """Start async campaign unarchive. No JSON body."""
+        return self._make_request(
+            "POST", f"/campaign/{campaign_id}/unarchive", data=None
+        )

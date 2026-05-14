@@ -5,6 +5,14 @@ All notable changes to the Universal Ads SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-05-14
+
+### Added
+- TPA async **archive** and **unarchive** for campaigns, ad sets, and ads (`archive_campaign` / `unarchive_campaign`, `archive_adset` / `unarchive_adset`, `archive_ad` / `unarchive_ad`, plus matching methods on `CampaignEndpoint`, `AdsetEndpoint`, and `AdEndpoint`). Start calls use `POST` with no JSON body.
+- **Archive job** polling: `get_archive_job`, `ArchiveJobEndpoint`, and `poll_archive_job` with exponential backoff and jitter until a terminal status or timeout. Application scopes align with backend behavior: **CAMPAIGN_EDIT** for starting archive/unarchive, **CAMPAIGN_READ** for job poll.
+- Types: `ArchiveJobStatus`, `ArchiveAction`, `ArchiveEntityType`; TypedDicts `ArchiveResponse`, `ArchiveJobResponse` (including `created_at` / `completed_at` per Connective poll payload), `ArchiveEntityResultResponse`, and `ArchiveEntityFailureResponse`; exception `ArchiveJobTimeoutError` (includes last poll payload and optional last `APIError`).
+- Contract tests in `tests/test_archive_job_contract.py` (mocked HTTP).
+
 ## [2.1.0] - 2026-05-11
 
 ### Changed
@@ -126,6 +134,7 @@ Initial stable release with basic functionality for:
 - Basic reporting
 - Segment management
 
+[2.2.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.3.0...v2.0.0
 [1.3.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.2.0...v1.3.0

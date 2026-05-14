@@ -2,7 +2,8 @@
 Ad management endpoints.
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from ._base import BaseEndpoint
 
 
@@ -52,3 +53,11 @@ class AdEndpoint(BaseEndpoint):
     def update_ad(self, ad_id: str, **data) -> Dict[str, Any]:
         """Update an existing ad."""
         return self._make_request("PUT", f"/ad/{ad_id}", data=data)
+
+    def archive_ad(self, ad_id: str) -> Dict[str, Any]:
+        """Start async single-ad archive. No JSON body."""
+        return self._make_request("POST", f"/ad/{ad_id}/archive", data=None)
+
+    def unarchive_ad(self, ad_id: str) -> Dict[str, Any]:
+        """Start async single-ad unarchive. No JSON body."""
+        return self._make_request("POST", f"/ad/{ad_id}/unarchive", data=None)
