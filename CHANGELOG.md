@@ -8,10 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.0] - 2026-05-14
 
 ### Added
-- TPA async **archive** and **unarchive** for campaigns, ad sets, and ads (`archive_campaign` / `unarchive_campaign`, `archive_adset` / `unarchive_adset`, `archive_ad` / `unarchive_ad`, plus matching methods on `CampaignEndpoint`, `AdsetEndpoint`, and `AdEndpoint`). Start calls use `POST` with no JSON body.
-- **Archive job** polling: `get_archive_job`, `ArchiveJobEndpoint`, and `poll_archive_job` with exponential backoff and jitter until a terminal status or timeout. Application scopes align with backend behavior: **CAMPAIGN_EDIT** for starting archive/unarchive, **CAMPAIGN_READ** for job poll.
-- Types: `ArchiveJobStatus`, `ArchiveAction`, `ArchiveEntityType`; TypedDicts `ArchiveResponse`, `ArchiveJobResponse` (including `created_at` / `completed_at` per Connective poll payload), `ArchiveEntityResultResponse`, and `ArchiveEntityFailureResponse`; exception `ArchiveJobTimeoutError` (includes last poll payload and optional last `APIError`).
-- Contract tests in `tests/test_archive_job_contract.py` (mocked HTTP).
+- **Archive and unarchive** for campaigns, ad sets, and single ads. These run as background jobs: you get a job id and a suggested wait time, then you can check status with **`get_archive_job`** or let **`poll_archive_job`** wait until the job finishes, reports a failure, or hits your timeout. Starting archive or unarchive does not send a JSON body.
+- **Enums** for archive job status, action, and entity kind (`ArchiveJobStatus`, `ArchiveAction`, `ArchiveEntityType`) so you can compare against clear string values instead of hard-coding literals.
 
 ## [2.1.0] - 2026-05-11
 

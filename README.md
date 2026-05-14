@@ -341,7 +341,7 @@ updated = client.update_campaign(campaign["id"], name="Spring Campaign v2")
 
 #### Async archive / unarchive (campaign, ad set, ad)
 
-Archive and unarchive run asynchronously. Each `POST` returns `archive_job_id`, `polling_timeout_seconds`, and `entity_count`. Poll with `get_archive_job` until `status` is terminal (`completed`, `partially_failed`, or `failed`), or use `poll_archive_job`, which respects `polling_timeout_seconds` from the start response when you pass `archive_start_response=`. Starting an archive requires application scopes in the **CAMPAIGN_EDIT** class; polling uses **CAMPAIGN_READ**. Confirm paths and schemas against [OpenAPI](https://api.universalads.com/v1/docs) after deploy.
+Archive and unarchive run asynchronously. Each start `POST` returns `archive_job_id`, `polling_timeout_seconds`, and `entity_count`. Poll with `get_archive_job` until `status` is `completed`, `partially_failed`, or `failed`, or use `poll_archive_job` with `archive_start_response=start` to apply the suggested timeout from the start response.
 
 ```python
 start = client.archive_campaign("campaign-uuid")
