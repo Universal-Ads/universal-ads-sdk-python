@@ -2,7 +2,7 @@
 Setup script for the Universal Ads SDK.
 """
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -14,7 +14,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="universal-ads-sdk",
-    version="2.1.2",
+    version="2.2.0",
     author="Universal Ads",
     author_email="support+sdk@universalads.com",
     description="Python SDK for the Universal Ads Third Party API",

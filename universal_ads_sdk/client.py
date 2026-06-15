@@ -3,23 +3,28 @@ Main client for the Universal Ads SDK.
 """
 
 import json
-from typing import Dict, Any, Optional, Union, List
+import random
+import time
+from typing import Any, Dict, List, Optional, Union
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from .auth import Authenticator
-from .common.exceptions import APIError, AuthenticationError
+from .common.exceptions import APIError, ArchiveJobTimeoutError, AuthenticationError
+from .common.types import ArchiveJobStatus
 from .endpoints import (
+    AdEndpoint,
+    AdsetEndpoint,
+    ArchiveJobEndpoint,
+    AudienceEndpoint,
+    CampaignEndpoint,
     CreativeEndpoint,
     MediaEndpoint,
-    ReportEndpoint,
-    AudienceEndpoint,
     MeEndpoint,
-    CampaignEndpoint,
-    AdsetEndpoint,
-    AdEndpoint,
     PixelEndpoint,
+    ReportEndpoint,
 )
 
 
@@ -85,6 +90,7 @@ class UniversalAdsClient:
         self.adset = AdsetEndpoint(self._make_request)
         self.ad = AdEndpoint(self._make_request)
         self.pixel = PixelEndpoint(self._make_request)
+        self.archive_job = ArchiveJobEndpoint(self._make_request)
 
     def _sanitize_custom_headers(
         self, headers: Optional[Dict[str, str]]
@@ -628,6 +634,126 @@ class UniversalAdsClient:
     def update_ad(self, ad_id: str, **data) -> Dict[str, Any]:
         """Update an ad. Delegates to ad endpoint."""
         return self.ad.update_ad(ad_id, **data)
+
+    def archive_campaign(self, campaign_id: str) -> Dict[str, Any]:
+        """Start async campaign archive. Delegates to campaign endpoint."""
+        return self.campaign.archive_campaign(campaign_id)
+
+    def unarchive_campaign(self, campaign_id: str) -> Dict[str, Any]:
+        """Start async campaign unarchive. Delegates to campaign endpoint."""
+        return self.campaign.unarchive_campaign(campaign_id)
+
+    def archive_adset(self, adset_id: str) -> Dict[str, Any]:
+        """Start async ad set archive. Delegates to adset endpoint."""
+        return self.adset.archive_adset(adset_id)
+
+    def unarchive_adset(self, adset_id: str) -> Dict[str, Any]:
+        """Start async ad set unarchive. Delegates to adset endpoint."""
+        return self.adset.unarchive_adset(adset_id)
+
+    def archive_ad(self, ad_id: str) -> Dict[str, Any]:
+        """Start async ad archive. Delegates to ad endpoint."""
+        return self.ad.archive_ad(ad_id)
+
+    def unarchive_ad(self, ad_id: str) -> Dict[str, Any]:
+        """Start async ad unarchive. Delegates to ad endpoint."""
+        return self.ad.unarchive_ad(ad_id)
+
+    def get_archive_job(self, archive_job_id: str) -> Dict[str, Any]:
+        """Poll archive job status. Delegates to archive_job endpoint."""
+        return self.archive_job.get_archive_job(archive_job_id)
+
+    def poll_archive_job(
+        self,
+        archive_job_id: str,
+        polling_timeout_seconds: Optional[int] = None,
+        *,
+        archive_start_response: Optional[Dict[str, Any]] = None,
+        initial_backoff_seconds: float = 0.5,
+        max_backoff_seconds: float = 5.0,
+    ) -> Dict[str, Any]:
+        """
+        Poll GET /archive-job/{id} until status is terminal or timeout.
+
+        Terminal statuses: completed, partially_failed, failed.
+
+        Provide ``polling_timeout_seconds`` or pass ``archive_start_response``
+        from the archive/unarchive POST so ``polling_timeout_seconds`` can be
+        read from the API. On ``completed``, strict success may still require
+        ``failed_entities`` to be empty.
+
+        Raises:
+            ArchiveJobTimeoutError: If elapsed time exceeds the timeout.
+            ValueError: If timeout cannot be resolved or job id mismatches start response.
+        """
+        resolved_timeout = polling_timeout_seconds
+        if resolved_timeout is None and archive_start_response is not None:
+            resolved_timeout = archive_start_response.get("polling_timeout_seconds")
+        if resolved_timeout is None:
+            raise ValueError(
+                "polling_timeout_seconds is required unless archive_start_response "
+                "includes polling_timeout_seconds"
+            )
+
+        if archive_start_response is not None:
+            start_job_id = archive_start_response.get("archive_job_id")
+            if start_job_id is not None and start_job_id != archive_job_id:
+                raise ValueError(
+                    "archive_job_id does not match archive_start_response['archive_job_id']"
+                )
+
+        terminal = {
+            ArchiveJobStatus.COMPLETED.value,
+            ArchiveJobStatus.PARTIALLY_FAILED.value,
+            ArchiveJobStatus.FAILED.value,
+        }
+        start = time.monotonic()
+        last_state: Dict[str, Any] = {}
+        last_error: Optional[APIError] = None
+        backoff = initial_backoff_seconds
+
+        while True:
+            elapsed = time.monotonic() - start
+            if elapsed >= resolved_timeout:
+                raise ArchiveJobTimeoutError(
+                    f"Archive job {archive_job_id} polling exceeded "
+                    f"{resolved_timeout}s timeout",
+                    archive_job_id=archive_job_id,
+                    last_job_state=last_state,
+                    last_api_error=last_error,
+                )
+
+            try:
+                last_state = self.get_archive_job(archive_job_id)
+                last_error = None
+            except APIError as e:
+                last_error = e
+                remaining = resolved_timeout - (time.monotonic() - start)
+                if remaining <= 0:
+                    raise ArchiveJobTimeoutError(
+                        f"Archive job {archive_job_id} polling exceeded "
+                        f"{resolved_timeout}s timeout",
+                        archive_job_id=archive_job_id,
+                        last_job_state=last_state,
+                        last_api_error=last_error,
+                    )
+                sleep_time = min(backoff, max_backoff_seconds, max(0.0, remaining))
+                if sleep_time > 0:
+                    jitter = random.uniform(0, min(0.25, sleep_time))
+                    time.sleep(sleep_time + jitter)
+                backoff = min(backoff * 2, max_backoff_seconds)
+                continue
+
+            status = last_state.get("status")
+            if status in terminal:
+                return last_state
+
+            remaining = resolved_timeout - (time.monotonic() - start)
+            sleep_time = min(backoff, max_backoff_seconds, max(0.0, remaining))
+            if sleep_time > 0:
+                jitter = random.uniform(0, min(0.25, sleep_time))
+                time.sleep(sleep_time + jitter)
+            backoff = min(backoff * 2, max_backoff_seconds)
 
     # Pixel Methods
     # These methods delegate to the pixel endpoint

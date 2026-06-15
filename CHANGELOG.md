@@ -5,6 +5,12 @@ All notable changes to the Universal Ads SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-06-15
+
+### Added
+- **Archive and unarchive** for campaigns, ad sets, and single ads. These run as background jobs: you get a job id and a suggested wait time, then you can check status with **`get_archive_job`** or let **`poll_archive_job`** wait until the job finishes, reports a failure, or hits your timeout. Starting archive or unarchive does not send a JSON body.
+- **Enums** for archive job status, action, and entity kind (`ArchiveJobStatus`, `ArchiveAction`, `ArchiveEntityType`) so you can compare against clear string values instead of hard-coding literals.
+
 ## [2.1.2] - 2026-06-15
 
 ### Changed
@@ -131,6 +137,7 @@ Initial stable release with basic functionality for:
 - Basic reporting
 - Segment management
 
+[2.2.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v2.1.1...v2.1.2
 [2.1.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/universal-ads/universal-ads-sdk-python/compare/v1.3.0...v2.0.0

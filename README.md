@@ -5,7 +5,7 @@ A Python SDK for interacting with the Universal Ads Third Party API. This SDK pr
 ## Features
 
 - **Creative Management**: Create, read, update, and delete creatives
-- **Campaign, Ad Set, and Ad Management**: List, create, get, and update campaign resources
+- **Campaign, Ad Set, and Ad Management**: List, create, get, and update campaign resources; async archive and unarchive with archive-job polling
 - **Pixel Access**: List pixels, get pixel details, and retrieve pixel events
 - **Media Upload**: Upload and verify media files
 - **Audience Management**: Create and manage custom audiences for targeted advertising
@@ -337,6 +337,25 @@ campaign = client.create_campaign(
 )
 
 updated = client.update_campaign(campaign["id"], name="Spring Campaign v2")
+```
+
+#### Async archive / unarchive (campaign, ad set, ad)
+
+Archive and unarchive run asynchronously. Each start `POST` returns `archive_job_id`, `polling_timeout_seconds`, and `entity_count`. Poll with `get_archive_job` until `status` is `completed`, `partially_failed`, or `failed`, or use `poll_archive_job` with `archive_start_response=start` to apply the suggested timeout from the start response.
+
+```python
+start = client.archive_campaign("campaign-uuid")
+final = client.poll_archive_job(
+    start["archive_job_id"],
+    archive_start_response=start,
+)
+
+# Ad set and single-ad equivalents
+client.unarchive_adset("adset-uuid")
+client.archive_ad("ad-uuid")
+
+# One-shot status (no wait)
+job = client.get_archive_job("archive-job-uuid")
 ```
 
 ### Ad Set Management

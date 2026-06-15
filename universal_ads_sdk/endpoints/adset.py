@@ -2,7 +2,8 @@
 Ad set management endpoints.
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from ._base import BaseEndpoint
 
 
@@ -55,3 +56,11 @@ class AdsetEndpoint(BaseEndpoint):
     def update_adset(self, adset_id: str, **data) -> Dict[str, Any]:
         """Update an existing ad set."""
         return self._make_request("PUT", f"/adset/{adset_id}", data=data)
+
+    def archive_adset(self, adset_id: str) -> Dict[str, Any]:
+        """Start async ad set archive (cascade to ads). No JSON body."""
+        return self._make_request("POST", f"/adset/{adset_id}/archive", data=None)
+
+    def unarchive_adset(self, adset_id: str) -> Dict[str, Any]:
+        """Start async ad set unarchive. No JSON body."""
+        return self._make_request("POST", f"/adset/{adset_id}/unarchive", data=None)

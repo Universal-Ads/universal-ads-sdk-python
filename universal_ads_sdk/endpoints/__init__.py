@@ -2,15 +2,16 @@
 Endpoint modules for the Universal Ads SDK.
 """
 
-from .creative import CreativeEndpoint
-from .media import MediaEndpoint
-from .report import ReportEndpoint
-from .audience import AudienceEndpoint
-from .me import MeEndpoint
-from .campaign import CampaignEndpoint
-from .adset import AdsetEndpoint
 from .ad import AdEndpoint
+from .adset import AdsetEndpoint
+from .archive_job import ArchiveJobEndpoint
+from .audience import AudienceEndpoint
+from .campaign import CampaignEndpoint
+from .creative import CreativeEndpoint
+from .me import MeEndpoint
+from .media import MediaEndpoint
 from .pixel import PixelEndpoint
+from .report import ReportEndpoint
 
 __all__ = [
     "CreativeEndpoint",
@@ -22,4 +23,5 @@ __all__ = [
     "AdsetEndpoint",
     "AdEndpoint",
     "PixelEndpoint",
+    "ArchiveJobEndpoint",
 ]

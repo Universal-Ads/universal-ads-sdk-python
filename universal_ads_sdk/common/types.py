@@ -90,3 +90,28 @@ class TimeAggregation(str, Enum):
     HOUR = "hour"
     DAY = "day"
     TOTAL = "total"
+
+
+class ArchiveJobStatus(str, Enum):
+    """Lifecycle status for async archive jobs (TPA archive-job poll)."""
+
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    PARTIALLY_FAILED = "partially_failed"
+    FAILED = "failed"
+
+
+class ArchiveAction(str, Enum):
+    """Archive vs unarchive job action."""
+
+    ARCHIVE = "archive"
+    UNARCHIVE = "unarchive"
+
+
+class ArchiveEntityType(str, Enum):
+    """Entity kinds tracked within archive jobs."""
+
+    CAMPAIGN = "campaign"
+    ADSET = "adset"
+    AD = "ad"
