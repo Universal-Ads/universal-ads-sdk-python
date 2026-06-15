@@ -71,3 +71,6 @@ tests/test_*.py
 run_tests_dev.sh
 RELEASE_GUIDE.md
 release.sh
+
+# cursor
+.cursor/
