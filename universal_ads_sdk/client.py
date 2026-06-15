@@ -519,7 +519,7 @@ class UniversalAdsClient:
         adaccount_id: str,
         campaign_ids: Optional[list] = None,
         name: Optional[str] = None,
-        status: Optional[str] = None,
+        status: Optional[Union[str, List[str]]] = None,
         campaign_type: Optional[str] = None,
         include_archived: Optional[bool] = None,
         limit: Optional[int] = None,
