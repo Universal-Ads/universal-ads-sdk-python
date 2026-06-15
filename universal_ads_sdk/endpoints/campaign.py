@@ -2,7 +2,7 @@
 Campaign management endpoints.
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, List, Optional, Union
 from ._base import BaseEndpoint
 
 
@@ -24,7 +24,7 @@ class CampaignEndpoint(BaseEndpoint):
         adaccount_id: str,
         campaign_ids: Optional[list] = None,
         name: Optional[str] = None,
-        status: Optional[str] = None,
+        status: Optional[Union[str, List[str]]] = None,
         campaign_type: Optional[str] = None,
         include_archived: Optional[bool] = None,
         limit: Optional[int] = None,
@@ -37,6 +37,7 @@ class CampaignEndpoint(BaseEndpoint):
 
         Args:
             adaccount_id: Filter by ad account ID
+            status: Filter by status (string or list for multiple values)
             limit: Maximum number of results to return
             offset: Number of results to skip
             sort: Sort field and direction
@@ -51,7 +52,7 @@ class CampaignEndpoint(BaseEndpoint):
         if name is not None:
             params["name"] = name
         if status is not None:
-            params["status"] = status
+            params["status"] = [status] if isinstance(status, str) else status
         if campaign_type is not None:
             params["campaign_type"] = campaign_type
         if include_archived is not None:
