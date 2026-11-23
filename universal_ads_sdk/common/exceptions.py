@@ -28,6 +28,28 @@ class APIError(UniversalAdsError):
         self.response_data = response_data or {}
 
 
+class TokenError(UniversalAdsError):
+    """Raised when the token endpoint refuses a request or returns no token."""
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        error: Optional[str] = None,
+        error_description: Optional[str] = None,
+    ):
+        super().__init__(message)
+        self.status_code = status_code
+        self.error = error
+        self.error_description = error_description
+
+
+class TokenStoreError(UniversalAdsError):
+    """Raised when the caller's token store hook fails."""
+
+    pass
+
+
 class ArchiveJobTimeoutError(UniversalAdsError):
     """Raised when polling an archive job exceeds the allowed duration."""
 

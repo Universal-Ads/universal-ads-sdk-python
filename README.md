@@ -173,6 +173,8 @@ UniversalAdsClient(
 )
 ```
 
+This is the signed client. User-token, System User, and access-token clients are under [Authentication](#authentication).
+
 ### Creative Management
 
 #### Get All Creatives
@@ -341,7 +343,7 @@ updated = client.update_campaign(campaign["id"], name="Spring Campaign v2")
 
 #### Async archive / unarchive (campaign, ad set, ad)
 
-Archive and unarchive run asynchronously. Each start `POST` returns `archive_job_id`, `polling_timeout_seconds`, and `entity_count`. Poll with `get_archive_job` until `status` is `completed`, `partially_failed`, or `failed`, or use `poll_archive_job` with `archive_start_response=start` to apply the suggested timeout from the start response.
+Archive and unarchive run asynchronously. Each start `POST` returns `archive_job_id`, `polling_timeout_seconds`, and `entity_count`. Poll with `get_archive_job` until `status` is `completed`, `partially_failed`, or `failed`, or use `poll_archive_job` with `archive_start_response=start` to apply the suggested timeout from the start response. `poll_archive_job` repeats an `APIError`, including a `401`, until the archive timeout and keeps the same access token. Call `get_archive_job` when a `401` should be retried once with a new client.
 
 ```python
 start = client.archive_campaign("campaign-uuid")
@@ -563,10 +565,20 @@ adaccounts = client.get_adaccounts(
 The SDK provides specific exception types for different error scenarios:
 
 ```python
-from universal_ads_sdk import UniversalAdsError, AuthenticationError, APIError
+from universal_ads_sdk import (
+    APIError,
+    AuthenticationError,
+    TokenError,
+    TokenStoreError,
+    UniversalAdsError,
+)
 
 try:
     creative = client.create_creative(...)
+except TokenStoreError as e:
+    print(f"Store hook failed: {e}")
+except TokenError as e:
+    print(f"Token error {e.status_code}: {e.error}")
 except AuthenticationError as e:
     print(f"Authentication failed: {e}")
 except APIError as e:
@@ -606,7 +618,81 @@ client = UniversalAdsClient(
 
 ## Authentication
 
-The SDK uses request signing for secure API access. Each request is signed with your private key and includes:
+Signed clients and token clients call the same methods. Each client uses one credential. Passing signing keys together with OAuth credentials raises `ValueError`.
+
+A token client sends `Authorization: Bearer` and the same `x-sdk-version` and `x-sdk-source` headers as a signed client. `headers=` on a token client cannot set `Authorization`, `x-api-key`, `x-timestamp`, or `x-signature`.
+
+Token requests are `POST {base_url}/oauth/token` as form data. They are not signed and are not retried. The SDK does not follow a redirect from the token endpoint. A refused token request, a redirect, or a token body the SDK cannot read raises `TokenError` with `status_code`, and `error` and `error_description` when the body has them. An API `401` or `403` stays `APIError` and does not request a token.
+
+### Signed client
+
+```python
+client = UniversalAdsClient(
+    api_key="your-api-key",
+    private_key_pem="""-----BEGIN PRIVATE KEY-----
+your-private-key-content
+-----END PRIVATE KEY-----""",
+)
+```
+
+Each API request is signed. `headers=` cannot set `x-api-key`, `x-timestamp`, or `x-signature`.
+
+### User token
+
+Send the customer through the authorization redirect and exchange the code yourself, as described on the [User tokens](https://developers.universalads.com/authentication/user-tokens) page. Pass `access_token` and `access_token_expires_at` together, or pass neither. Without that pair, the SDK requests a new access token before the first call.
+
+`access_token_expires_at` is a Unix timestamp in seconds, the same value the store hook receives as `expires_at`. The SDK requests a new access token when the current one expires within 60 seconds (`expires_at - time.time() <= 60`). It uses `expires_in` from the token response, or `access_token_expires_at` when you passed that pair. It does not read the access token.
+
+```python
+def store_tokens(access_token, expires_at, refresh_token, scope):
+    save(access_token, expires_at, refresh_token)
+
+
+client = UniversalAdsClient(
+    client_id="your-client-id",
+    client_secret="your-client-secret",
+    refresh_token=stored_refresh_token,
+    access_token=stored_access_token,
+    access_token_expires_at=stored_expires_at,
+    store_hook=store_tokens,
+)
+```
+
+`store_hook` is required. The SDK calls it with the new access token, its expiry, the new refresh token, and `scope` before any API call. The hook must not call this client; that call runs the hook again. If the hook raises, the SDK raises `TokenStoreError` (the hook's exception is `__cause__`), makes no API call, and leaves the new tokens on the client (`access_token`, `access_token_expires_at`, `refresh_token`, and `scope`). The next call runs the hook again with those same values and does not request another token.
+
+When several processes or threads share one customer's user token, hold a lock they share, build the client from the latest stored tokens, and release the lock after the client's calls. The SDK does not take that lock. A System User client needs no lock.
+
+If a refresh fails with `TokenError` and `error` is `invalid_grant`, reread the stored refresh token. When another process has replaced it, build the client from the stored one. Send the customer to authorize the app again only when the stored refresh token is the one that was refused. After a timeout or a 5xx, do not send the customer to authorize again.
+
+If an API call returns `401`, build a new client from the stored refresh token without an access token and repeat the call once. [`poll_archive_job`](#async-archive--unarchive-campaign-ad-set-ad) keeps calling with the same client until its timeout. If that token request is refused, the SDK raises `TokenError`. If the repeated call is refused again, do not retry it. A `403` is not a reason to request a new token.
+
+### System User token
+
+An Owner or Admin authorizes the app for one organization. Store the `system_user_id` from that callback. The steps are on the [System Users](https://developers.universalads.com/authentication/system-users) page. This client sends `grant_type=client_credentials` and `system_user_id`, and it omits `scope`. It takes no refresh token, no access token, and no store hook. For a narrower token, request it as that page shows and pass the access token to the access-token client.
+
+```python
+client = UniversalAdsClient(
+    client_id="your-client-id",
+    client_secret="your-client-secret",
+    system_user_id="system-user-id",
+)
+```
+
+Each process can request its own System User token, so this client needs no shared lock. A new client requests a token before the first call. It requests another when that token expires within 60 seconds (`expires_at - time.time() <= 60`), using `expires_in` from the token response.
+
+If an API call returns `401`, build a new System User client and repeat the call once. [`poll_archive_job`](#async-archive--unarchive-campaign-ad-set-ad) keeps calling with the same client until its timeout. If that token request is refused, the SDK raises `TokenError`. If the repeated call is refused again, do not retry it. A `403` is not a reason to request a new token.
+
+### Access token
+
+```python
+client = UniversalAdsClient(access_token="access-token")
+```
+
+This client sends that access token and never calls the token endpoint.
+
+### Scopes
+
+Scope names are listed on the [Scopes](https://developers.universalads.com/authentication/scopes) page.
 
 ## Requirements
 

@@ -13,6 +13,13 @@ from cryptography.hazmat.primitives.asymmetric import ec, utils
 from . import __version__
 
 
+def sdk_identity_headers() -> Dict[str, str]:
+    return {
+        "x-sdk-version": __version__,
+        "x-sdk-source": "universal-ads-python-sdk",
+    }
+
+
 class Authenticator:
     """Handles request authentication and signing for the Universal Ads API."""
 
@@ -109,9 +116,8 @@ class Authenticator:
         headers = {
             "x-api-key": self.api_key,
             "x-timestamp": timestamp,
-            "x-sdk-version": __version__,  # SDK identification flag
-            "x-sdk-source": "universal-ads-python-sdk",  # SDK identification flag
         }
+        headers.update(sdk_identity_headers())
 
         # Create canonical request
         canonical_request = self.create_canonical_request(
