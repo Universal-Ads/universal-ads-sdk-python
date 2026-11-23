@@ -3,7 +3,9 @@ Main client for the Universal Ads SDK.
 """
 
 import json
+import math
 import random
+import threading
 import time
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Union, cast
 
@@ -102,6 +104,7 @@ class UniversalAdsClient:
         """
         self.base_url = base_url or self.BASE_URL
         self.timeout = timeout
+        self._token_lock = threading.Lock()
         self._configure_credentials(
             api_key=api_key,
             private_key_pem=private_key_pem,
@@ -334,19 +337,19 @@ class UniversalAdsClient:
         return sanitized_headers
 
     def _ensure_access_token(self) -> None:
-        expires_at = self.access_token_expires_at
         if self._credential == "access_token":
             return
-        if self._pending_store is not None:
-            self._run_store_hook(self._pending_store)
-            return
-        if (
-            self.access_token is not None
-            and expires_at is not None
-            and expires_at - time.time() > 60
-        ):
-            return
-        self._request_access_token()
+        with self._token_lock:
+            if self._pending_store is not None:
+                self._run_store_hook(self._pending_store)
+            expires_at = self.access_token_expires_at
+            if (
+                self.access_token is not None
+                and expires_at is not None
+                and expires_at - time.time() > 60
+            ):
+                return
+            self._request_access_token()
 
     def _request_access_token(self) -> None:
         if self._credential == "refresh_token":
@@ -402,7 +405,12 @@ class UniversalAdsClient:
         expires_in = body.get("expires_in")
         if not isinstance(access_token, str) or access_token == "":
             raise self._unreadable_token_error(response)
-        if isinstance(expires_in, bool) or not isinstance(expires_in, (int, float)):
+        if (
+            isinstance(expires_in, bool)
+            or not isinstance(expires_in, (int, float))
+            or not math.isfinite(expires_in)
+            or expires_in <= 0
+        ):
             raise self._unreadable_token_error(response)
 
         scope = body.get("scope")

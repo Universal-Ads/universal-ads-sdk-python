@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **User tokens, System User tokens, and access tokens.** Build a client from a refresh token and a store hook, from a `system_user_id`, or from an access token you already have. A user-token client refreshes before the access token expires and passes each new refresh token to the store hook before it calls the API. A System User client requests its own token. An access-token client does not request one. Signed clients built with an API key and private key are unchanged.
 - **Token errors** (`TokenError`, `TokenStoreError`) so a refused token request or a store-hook failure can be handled apart from a failed API call.
 
+### Changed
+- A missing or empty API key or private key raises `ValueError`. A private key that cannot be loaded still raises `AuthenticationError`.
+
 ## [2.2.0] - 2026-06-15
 
 ### Added

@@ -1,6 +1,8 @@
 import base64
 import json
 import logging
+import threading
+import time
 from unittest.mock import MagicMock
 
 import pytest
@@ -258,6 +260,63 @@ def test_hook_failure_skips_the_call_and_retries_the_same_tokens(post, frozen_ti
     assert calls[0] == calls[1]
 
 
+def test_hook_success_refreshes_again_when_the_token_is_inside_the_window(
+    post, frozen_time
+):
+    calls = []
+    renewed = "renewed-access-token-secret-value"
+    renewed_refresh = "renewed-refresh-token-secret-value"
+
+    def hook(**kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            raise RuntimeError("disk full")
+
+    post.side_effect = [
+        _token_response(expires_in=30),
+        _token_response(access_token=renewed, refresh_token=renewed_refresh),
+    ]
+    client = _refresh_client(store_hook=hook)
+    api = _attach_api(client)
+
+    with pytest.raises(TokenStoreError):
+        client.get_organizations()
+
+    assert post.call_count == 1
+    assert api.call_count == 0
+
+    client.get_organizations()
+
+    assert post.call_count == 2
+    assert calls[1]["access_token"] == NEW_ACCESS
+    assert calls[1]["refresh_token"] == NEW_REFRESH
+    assert calls[2]["access_token"] == renewed
+    assert calls[2]["refresh_token"] == renewed_refresh
+    assert api.call_args.kwargs["headers"]["Authorization"] == f"Bearer {renewed}"
+
+
+def test_a_short_follow_up_token_does_not_refresh_again(post, frozen_time):
+    calls = []
+
+    def hook(**kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            raise RuntimeError("disk full")
+
+    post.return_value = _token_response(expires_in=30)
+    client = _refresh_client(store_hook=hook)
+    api = _attach_api(client)
+
+    with pytest.raises(TokenStoreError):
+        client.get_organizations()
+
+    client.get_organizations()
+
+    assert post.call_count == 2
+    assert api.call_count == 1
+    assert len(calls) == 3
+
+
 def test_access_token_with_more_than_a_minute_left_is_sent_as_is(post, frozen_time):
     client = _refresh_client(
         access_token=ACCESS,
@@ -506,6 +565,63 @@ def test_api_403_after_a_scheduled_refresh_does_not_refresh_again(post, frozen_t
 
     assert exc.value.status_code == 403
     assert post.call_count == 1
+
+
+def test_threads_sharing_one_refresh_client_request_one_token(post, frozen_time):
+    ready = threading.Barrier(2)
+    first_entered = threading.Event()
+    release = threading.Event()
+    errors = []
+
+    def token_post(**kwargs):
+        first_entered.set()
+        assert release.wait(timeout=2)
+        return _token_response()
+
+    post.side_effect = token_post
+    client = _refresh_client()
+    _attach_api(client)
+
+    def call():
+        ready.wait(timeout=2)
+        try:
+            client.get_organizations()
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=call) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    assert first_entered.wait(timeout=2)
+    try:
+        deadline = time.monotonic() + 0.3
+        while time.monotonic() < deadline and post.call_count < 2:
+            time.sleep(0.01)
+        assert post.call_count == 1
+    finally:
+        release.set()
+    for thread in threads:
+        thread.join(timeout=2)
+        assert not thread.is_alive()
+    assert errors == []
+    assert post.call_count == 1
+
+
+def test_non_positive_or_non_finite_expires_in_is_unreadable(post, frozen_time):
+    client = _refresh_client(
+        access_token=ACCESS,
+        access_token_expires_at=FROZEN + 10,
+    )
+    _attach_api(client)
+
+    for expires_in in (0, -1, float("nan"), float("inf")):
+        post.return_value = _token_response(expires_in=expires_in)
+        with pytest.raises(TokenError, match="unreadable"):
+            client.get_organizations()
+        assert client.access_token == ACCESS
+        assert client.refresh_token == REFRESH
+
+    assert post.call_count == 4
 
 
 def test_non_production_base_url_is_used_for_the_token_request(post, frozen_time):

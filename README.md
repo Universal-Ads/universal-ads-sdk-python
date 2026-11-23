@@ -658,9 +658,9 @@ client = UniversalAdsClient(
 )
 ```
 
-`store_hook` is required. The SDK calls it with the new access token, its expiry, the new refresh token, and `scope` before any API call. The hook must not call this client; that call runs the hook again. If the hook raises, the SDK raises `TokenStoreError` (the hook's exception is `__cause__`), makes no API call, and leaves the new tokens on the client (`access_token`, `access_token_expires_at`, `refresh_token`, and `scope`). The next call runs the hook again with those same values and does not request another token.
+`store_hook` is required. The SDK calls it with the new access token, its expiry, the new refresh token, and `scope` before any API call. The hook must not call this client. This client holds its token lock until the hook returns. If the hook raises, the SDK raises `TokenStoreError` (the hook's exception is `__cause__`), makes no API call, and leaves the new tokens on the client (`access_token`, `access_token_expires_at`, `refresh_token`, and `scope`). The next call runs the hook again with those same values and does not request another token first. After that hook succeeds, a token that expires within 60 seconds is refreshed before the API call.
 
-When several processes or threads share one customer's user token, hold a lock they share, build the client from the latest stored tokens, and release the lock after the client's calls. The SDK does not take that lock. A System User client needs no lock.
+Threads that share one client object refresh one at a time. When several processes, or threads that each build their own client, share one customer's user token, hold a lock they share, build each client from the latest stored tokens, and release the lock after that client's calls. The SDK does not take that lock. A System User client needs no lock across processes.
 
 If a refresh fails with `TokenError` and `error` is `invalid_grant`, reread the stored refresh token. When another process has replaced it, build the client from the stored one. Send the customer to authorize the app again only when the stored refresh token is the one that was refused. After a timeout or a 5xx, do not send the customer to authorize again.
 
