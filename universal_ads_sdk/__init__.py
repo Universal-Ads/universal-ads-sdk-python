@@ -4,7 +4,7 @@ Universal Ads SDK
 A Python SDK for interacting with the Universal Ads Third Party API.
 """
 
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 
 from .client import UniversalAdsClient
 from .common import (
@@ -23,6 +23,8 @@ from .common import (
     ReportTimeAggregation,
     ScheduledReportStatus,
     TimeAggregation,
+    TokenError,
+    TokenStoreError,
     UniversalAdsError,
 )
 from .endpoints import (
@@ -43,6 +45,8 @@ __all__ = [
     "UniversalAdsError",
     "AuthenticationError",
     "APIError",
+    "TokenError",
+    "TokenStoreError",
     "ArchiveJobTimeoutError",
     "ReportTimeAggregation",
     "AttributionWindowEnum",

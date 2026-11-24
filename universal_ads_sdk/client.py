@@ -3,16 +3,24 @@ Main client for the Universal Ads SDK.
 """
 
 import json
+import math
 import random
+import threading
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Union, cast
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .auth import Authenticator
-from .common.exceptions import APIError, ArchiveJobTimeoutError, AuthenticationError
+from .auth import Authenticator, sdk_identity_headers
+from .common.exceptions import (
+    APIError,
+    ArchiveJobTimeoutError,
+    AuthenticationError,
+    TokenError,
+    TokenStoreError,
+)
 from .common.types import ArchiveJobStatus
 from .endpoints import (
     AdEndpoint,
@@ -28,6 +36,37 @@ from .endpoints import (
 )
 
 
+class _PendingTokenStore(NamedTuple):
+    access_token: str
+    expires_at: float
+    refresh_token: str
+    scope: Optional[str]
+
+
+class _ParsedToken(NamedTuple):
+    access_token: str
+    expires_in: float
+    refresh_token: Optional[str]
+    scope: Optional[str]
+
+
+class _OAuthErrorBody(NamedTuple):
+    error: Optional[str]
+    error_description: Optional[str]
+
+
+def _require_text(name: str, value: object) -> str:
+    if not isinstance(value, str) or value == "":
+        raise ValueError(f"{name} must be a non-empty string.")
+    return value
+
+
+def _require_expiry(value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("access_token_expires_at must be a Unix timestamp in seconds.")
+    return float(value)
+
+
 class UniversalAdsClient:
     """
     Main client for interacting with the Universal Ads API.
@@ -41,33 +80,43 @@ class UniversalAdsClient:
 
     def __init__(
         self,
-        api_key: str,
-        private_key_pem: str,
+        api_key: Optional[str] = None,
+        private_key_pem: Optional[str] = None,
         base_url: Optional[str] = None,
         timeout: int = 30,
         max_retries: int = 3,
         headers: Optional[Dict[str, str]] = None,
+        *,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        refresh_token: Optional[str] = None,
+        access_token: Optional[str] = None,
+        access_token_expires_at: Optional[float] = None,
+        store_hook: Optional[Callable[..., None]] = None,
+        system_user_id: Optional[str] = None,
     ):
         """
         Initialize the Universal Ads client.
 
-        Args:
-            api_key: Your API key
-            private_key_pem: Your private key in PEM format
-            base_url: Base URL for the API (defaults to production)
-            timeout: Request timeout in seconds
-            max_retries: Maximum number of retries for failed requests
-            headers: Optional custom headers to include in every SDK request
+        A signed client takes api_key and private_key_pem. A token client takes
+        one of: client_id, client_secret, refresh_token, and store_hook;
+        client_id, client_secret, and system_user_id; or access_token alone.
         """
         self.base_url = base_url or self.BASE_URL
         self.timeout = timeout
+        self._token_lock = threading.Lock()
+        self._configure_credentials(
+            api_key=api_key,
+            private_key_pem=private_key_pem,
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token=refresh_token,
+            access_token=access_token,
+            access_token_expires_at=access_token_expires_at,
+            store_hook=store_hook,
+            system_user_id=system_user_id,
+        )
         self._custom_headers = self._sanitize_custom_headers(headers)
-
-        # Initialize authenticator
-        try:
-            self.authenticator = Authenticator(api_key, private_key_pem)
-        except Exception as e:
-            raise AuthenticationError(f"Failed to initialize authenticator: {e}")
 
         # Setup session with retry strategy
         self.session = requests.Session()
@@ -92,6 +141,180 @@ class UniversalAdsClient:
         self.pixel = PixelEndpoint(self._make_request)
         self.archive_job = ArchiveJobEndpoint(self._make_request)
 
+    def __repr__(self) -> str:
+        return (
+            f"UniversalAdsClient(base_url={self.base_url!r}, "
+            f"credential={self._credential!r})"
+        )
+
+    def _configure_credentials(
+        self,
+        *,
+        api_key: Optional[str],
+        private_key_pem: Optional[str],
+        client_id: Optional[str],
+        client_secret: Optional[str],
+        refresh_token: Optional[str],
+        access_token: Optional[str],
+        access_token_expires_at: Optional[float],
+        store_hook: Optional[Callable[..., None]],
+        system_user_id: Optional[str],
+    ) -> None:
+        self.access_token: Optional[str] = None
+        self.refresh_token: Optional[str] = None
+        self.access_token_expires_at: Optional[float] = None
+        self.scope: Optional[str] = None
+        self.authenticator: Optional[Authenticator] = None
+        self._client_id: Optional[str] = None
+        self._client_secret: Optional[str] = None
+        self._store_hook: Optional[Callable[..., None]] = None
+        self._system_user_id: Optional[str] = None
+        self._pending_store: Optional[_PendingTokenStore] = None
+
+        signing = api_key is not None or private_key_pem is not None
+        oauth = any(
+            value is not None
+            for value in (
+                client_id,
+                client_secret,
+                refresh_token,
+                access_token,
+                access_token_expires_at,
+                store_hook,
+                system_user_id,
+            )
+        )
+        if signing and oauth:
+            raise ValueError("Signing keys and OAuth credentials cannot be combined.")
+        if not signing and not oauth:
+            raise ValueError(
+                "Provide an API key and private key, or OAuth credentials."
+            )
+        if signing:
+            self._configure_signed_client(api_key, private_key_pem)
+            return
+        if system_user_id is not None:
+            self._configure_system_user_client(
+                client_id=client_id,
+                client_secret=client_secret,
+                refresh_token=refresh_token,
+                access_token=access_token,
+                access_token_expires_at=access_token_expires_at,
+                store_hook=store_hook,
+                system_user_id=system_user_id,
+            )
+            return
+        if any(
+            value is not None
+            for value in (client_id, client_secret, refresh_token, store_hook)
+        ):
+            self._configure_refresh_client(
+                client_id=client_id,
+                client_secret=client_secret,
+                refresh_token=refresh_token,
+                access_token=access_token,
+                access_token_expires_at=access_token_expires_at,
+                store_hook=store_hook,
+            )
+            return
+        self._configure_access_token_client(access_token, access_token_expires_at)
+
+    def _configure_signed_client(
+        self, api_key: Optional[str], private_key_pem: Optional[str]
+    ) -> None:
+        if api_key is None or private_key_pem is None:
+            raise ValueError(
+                "api_key and private_key_pem are both required to sign requests."
+            )
+        api_key = _require_text("api_key", api_key)
+        private_key_pem = _require_text("private_key_pem", private_key_pem)
+        self._credential = "signed"
+        try:
+            self.authenticator = Authenticator(api_key, private_key_pem)
+        except Exception as e:
+            raise AuthenticationError(f"Failed to initialize authenticator: {e}")
+
+    def _configure_refresh_client(
+        self,
+        *,
+        client_id: Optional[str],
+        client_secret: Optional[str],
+        refresh_token: Optional[str],
+        access_token: Optional[str],
+        access_token_expires_at: Optional[float],
+        store_hook: Optional[Callable[..., None]],
+    ) -> None:
+        if (
+            client_id is None
+            or client_secret is None
+            or refresh_token is None
+            or store_hook is None
+        ):
+            raise ValueError(
+                "A refresh-token client requires client_id, client_secret, "
+                "refresh_token, and store_hook."
+            )
+        if not callable(store_hook):
+            raise ValueError("store_hook must be callable.")
+        has_access_token = access_token is not None
+        has_expiry = access_token_expires_at is not None
+        if has_access_token != has_expiry:
+            raise ValueError(
+                "access_token and access_token_expires_at must be provided together."
+            )
+        self._credential = "refresh_token"
+        self._client_id = _require_text("client_id", client_id)
+        self._client_secret = _require_text("client_secret", client_secret)
+        self.refresh_token = _require_text("refresh_token", refresh_token)
+        self._store_hook = store_hook
+        if has_access_token:
+            self.access_token = _require_text("access_token", access_token)
+            self.access_token_expires_at = _require_expiry(access_token_expires_at)
+
+    def _configure_system_user_client(
+        self,
+        *,
+        client_id: Optional[str],
+        client_secret: Optional[str],
+        refresh_token: Optional[str],
+        access_token: Optional[str],
+        access_token_expires_at: Optional[float],
+        store_hook: Optional[Callable[..., None]],
+        system_user_id: str,
+    ) -> None:
+        if any(
+            value is not None
+            for value in (
+                refresh_token,
+                access_token,
+                access_token_expires_at,
+                store_hook,
+            )
+        ):
+            raise ValueError(
+                "A system-user client takes client_id, client_secret, and "
+                "system_user_id."
+            )
+        if client_id is None or client_secret is None:
+            raise ValueError(
+                "A system-user client requires client_id, client_secret, and "
+                "system_user_id."
+            )
+        self._credential = "system_user"
+        self._client_id = _require_text("client_id", client_id)
+        self._client_secret = _require_text("client_secret", client_secret)
+        self._system_user_id = _require_text("system_user_id", system_user_id)
+
+    def _configure_access_token_client(
+        self,
+        access_token: Optional[str],
+        access_token_expires_at: Optional[float],
+    ) -> None:
+        if access_token_expires_at is not None or access_token is None:
+            raise ValueError("An access-token client takes an access token alone.")
+        self._credential = "access_token"
+        self.access_token = _require_text("access_token", access_token)
+
     def _sanitize_custom_headers(
         self, headers: Optional[Dict[str, str]]
     ) -> Dict[str, str]:
@@ -99,15 +322,155 @@ class UniversalAdsClient:
         if not headers:
             return {}
 
+        reserved = set(self._RESERVED_AUTH_HEADERS)
+        if self._credential != "signed":
+            reserved.add("authorization")
+
         sanitized_headers: Dict[str, str] = {}
         for key, value in headers.items():
-            if key.lower() in self._RESERVED_AUTH_HEADERS:
+            if key.lower() in reserved:
                 raise ValueError(
                     f"Custom header '{key}' cannot override SDK authentication headers."
                 )
             sanitized_headers[key] = str(value)
 
         return sanitized_headers
+
+    def _ensure_access_token(self) -> None:
+        if self._credential == "access_token":
+            return
+        with self._token_lock:
+            if self._pending_store is not None:
+                self._run_store_hook(self._pending_store)
+            expires_at = self.access_token_expires_at
+            if (
+                self.access_token is not None
+                and expires_at is not None
+                and expires_at - time.time() > 60
+            ):
+                return
+            self._request_access_token()
+
+    def _request_access_token(self) -> None:
+        if self._credential == "refresh_token":
+            form = {
+                "grant_type": "refresh_token",
+                "refresh_token": cast(str, self.refresh_token),
+            }
+        else:
+            form = {
+                "grant_type": "client_credentials",
+                "system_user_id": cast(str, self._system_user_id),
+            }
+        try:
+            response = requests.post(
+                url=f"{self.base_url.rstrip('/')}/oauth/token",
+                data=form,
+                auth=(cast(str, self._client_id), cast(str, self._client_secret)),
+                allow_redirects=False,
+                timeout=self.timeout,
+            )
+        except requests.RequestException as exc:
+            raise TokenError("Token request failed") from exc
+
+        if not 200 <= response.status_code < 300:
+            raise self._token_error(response)
+
+        parsed = self._read_token_body(response)
+        expires_at = time.time() + parsed.expires_in
+        self.access_token = parsed.access_token
+        self.access_token_expires_at = expires_at
+        self.scope = parsed.scope
+        if parsed.refresh_token is None:
+            return
+        self.refresh_token = parsed.refresh_token
+        pending = _PendingTokenStore(
+            access_token=parsed.access_token,
+            expires_at=expires_at,
+            refresh_token=parsed.refresh_token,
+            scope=parsed.scope,
+        )
+        self._pending_store = pending
+        self._run_store_hook(pending)
+
+    def _read_token_body(self, response: requests.Response) -> _ParsedToken:
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        if not isinstance(body, dict):
+            raise self._unreadable_token_error(response)
+
+        access_token = body.get("access_token")
+        expires_in = body.get("expires_in")
+        if not isinstance(access_token, str) or access_token == "":
+            raise self._unreadable_token_error(response)
+        if (
+            isinstance(expires_in, bool)
+            or not isinstance(expires_in, (int, float))
+            or not math.isfinite(expires_in)
+            or expires_in <= 0
+        ):
+            raise self._unreadable_token_error(response)
+
+        scope = body.get("scope")
+        if scope is not None and not isinstance(scope, str):
+            raise self._unreadable_token_error(response)
+
+        refresh_token: Optional[str] = None
+        if self._credential == "refresh_token":
+            refresh_value = body.get("refresh_token")
+            if not isinstance(refresh_value, str) or refresh_value == "":
+                raise self._unreadable_token_error(response)
+            refresh_token = refresh_value
+        return _ParsedToken(access_token, float(expires_in), refresh_token, scope)
+
+    def _token_error(self, response: requests.Response) -> TokenError:
+        fields = self._token_error_fields(response)
+        message = f"HTTP {response.status_code}"
+        if fields.error is not None:
+            message = f"{message}: {fields.error}"
+        if fields.error_description is not None:
+            message = f"{message}: {fields.error_description}"
+        return TokenError(
+            message,
+            status_code=response.status_code,
+            error=fields.error,
+            error_description=fields.error_description,
+        )
+
+    def _token_error_fields(self, response: requests.Response) -> _OAuthErrorBody:
+        try:
+            body = response.json()
+        except ValueError:
+            return _OAuthErrorBody(None, None)
+        if not isinstance(body, dict):
+            return _OAuthErrorBody(None, None)
+        error = body.get("error")
+        error_description = body.get("error_description")
+        if not isinstance(error, str):
+            error = None
+        if not isinstance(error_description, str):
+            error_description = None
+        return _OAuthErrorBody(error, error_description)
+
+    def _unreadable_token_error(self, response: requests.Response) -> TokenError:
+        return TokenError(
+            f"HTTP {response.status_code}: unreadable token response",
+            status_code=response.status_code,
+        )
+
+    def _run_store_hook(self, pending: _PendingTokenStore) -> None:
+        try:
+            cast(Callable[..., None], self._store_hook)(
+                access_token=pending.access_token,
+                expires_at=pending.expires_at,
+                refresh_token=pending.refresh_token,
+                scope=pending.scope,
+            )
+        except Exception as exc:
+            raise TokenStoreError("Token store hook failed") from exc
+        self._pending_store = None
 
     def _make_request(
         self,
@@ -129,7 +492,9 @@ class UniversalAdsClient:
             Response data as dictionary
 
         Raises:
-            APIError: If the request fails
+            APIError: If the API request fails
+            TokenError: If a token request fails before the API call
+            TokenStoreError: If the store hook fails before the API call
         """
         # Build URL with query parameters for authentication
         url = f"{self.base_url}{endpoint}"
@@ -149,7 +514,13 @@ class UniversalAdsClient:
                 body_str = json.dumps(data)
 
         # Get authentication headers (using URL with query params)
-        headers = self.authenticator.get_auth_headers(method, url, body_str)
+        authenticator = self.authenticator
+        if authenticator is not None:
+            headers = authenticator.get_auth_headers(method, url, body_str)
+        else:
+            self._ensure_access_token()
+            headers = {"Authorization": f"Bearer {cast(str, self.access_token)}"}
+            headers.update(sdk_identity_headers())
         if self._custom_headers:
             headers.update(self._custom_headers)
         headers["Content-Type"] = "application/json"

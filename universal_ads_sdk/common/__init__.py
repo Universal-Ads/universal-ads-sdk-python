@@ -6,6 +6,8 @@ from .exceptions import (
     APIError,
     ArchiveJobTimeoutError,
     AuthenticationError,
+    TokenError,
+    TokenStoreError,
     UniversalAdsError,
 )
 from .types import (
@@ -27,6 +29,8 @@ __all__ = [
     "UniversalAdsError",
     "AuthenticationError",
     "APIError",
+    "TokenError",
+    "TokenStoreError",
     "ArchiveJobTimeoutError",
     "ReportTimeAggregation",
     "AttributionWindowEnum",
